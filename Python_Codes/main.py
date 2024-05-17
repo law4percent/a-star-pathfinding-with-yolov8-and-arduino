@@ -53,8 +53,10 @@ def PolygonTest(Area, XY):
     return cv2.pointPolygonTest(np.array(Area, np.int32), XY, False)
 
 def main():
-    cv2.namedWindow("Video Frame")
-    cv2.setMouseCallback("Video Frame", VideoFrame)
+    window_frame_name = "Video Frame"
+
+    cv2.namedWindow(window_frame_name)
+    cv2.setMouseCallback(window_frame_name, VideoFrame)
 
     VIDEO_SOURCE_PATH = "inference/Videos/SAMPLE_VIDEO.mp4"
     yolov8_weights = "weights/best2.pt"
@@ -90,14 +92,6 @@ def main():
                 (Bright_path_area, TB_LRcolor)
             ]
 
-    requestIDandCommand = "TABLE_B_1" # Testing
-    reqFlag = False
-    TableA_Flag = False
-    TableB_Flag = False
-    TableC_Flag = False
-    TableD_Flag = False
-    target_location = ""
-
     while True:
         success, frame = cap.read()
 
@@ -111,38 +105,6 @@ def main():
                 reqFlag = True
             else:
                 pass
-
-        # robotCurrentLocation = pointBL_pos # Sample Only
-        # command = -1
-
-        # if requestIDandCommand == "TABLE_A_1":
-        #     command = 1
-        #     TableA_Flag = True
-        # elif requestIDandCommand == "TABLE_B_1":
-        #     command = 1
-        #     TableB_Flag = True
-        # elif requestIDandCommand == "TABLE_C_1":
-        #     command = 1
-        #     TableC_Flag = True
-        # elif requestIDandCommand == "TABLE_D_1":
-        #     command = 1
-        #     TableD_Flag = True
-        # else:
-        #     pass
-            
-
-        # elif requestIDandCommand == "TABLE_A_0":
-        #     target_location = CD.theShortestPath(robotCurrentLocation, TableA_closeArea[0], TableA_closeArea[1], TableA_closeArea[2], TableA_closeArea[3])
-        #     command = 0
-        # elif requestIDandCommand == "TABLE_B_0":
-        #     target_location = CD.theShortestPath(robotCurrentLocation, TableB_closeArea[0], TableB_closeArea[1], TableB_closeArea[2], TableB_closeArea[3])
-        #     command = 0
-        # elif requestIDandCommand == "TABLE_C_0":
-        #     target_location = CD.theShortestPath(robotCurrentLocation, TableC_closeArea[0], TableC_closeArea[1], TableC_closeArea[2], TableC_closeArea[3])
-        #     command = 0
-        # elif requestIDandCommand == "TABLE_D_0":
-        #     target_location = CD.theShortestPath(robotCurrentLocation, TableD_closeArea[0], TableD_closeArea[1], TableD_closeArea[2], TableD_closeArea[3])
-        #     command = 0
         
             
         count += 1
@@ -224,79 +186,6 @@ def main():
         totalNumOfClsDetected = [numClsFnd_mPath, numClsFnd_MlPath, numClsFnd_MrPath,
                                 numClsFnd_BmPath, numClsFnd_TmPath, numClsFnd_TlPath,
                                 numClsFnd_BlPath, numClsFnd_TrPath, numClsFnd_BrPath]
-        # x = sum(334, 444)
-        # if TableA_Flag and TableA_Flag:
-        #     numClsFnd = (numClsFnd_TlPath, numClsFnd_TmPath, numClsFnd_MlPath, numClsFnd_mPath)
-        #     areas = ("TL", "TM", "ML", "M")
-        #     States = CD.thelessCrowdedArea(numClsFnd, areas)
-
-        #     count = 0
-        #     for index in range(4):
-        #         if States[index] == True:
-        #             count += 1
-
-        #     if count > 1:
-        #         target_location = CD.shortestPath(robotCurrentLocation, TableA_closeArea, States)
-        #     else:
-        #         for index in range(4):
-        #             if States[index] == True:
-        #                 target_location = areas[index]
-        #                 break
-        # elif TableB_Flag and TableB_Flag:
-        #     TableB_Flag = False
-        #     requestIDandCommand = ""
-        #     numClsFnd = (numClsFnd_TmPath, numClsFnd_TrPath, numClsFnd_mPath, numClsFnd_MrPath)
-        #     areas = ("TM", "TR", "M", "MR")
-        #     States = CD.thelessCrowdedArea(numClsFnd, areas)
-
-        #     count = 0
-        #     for index in range(4):
-        #         if States[index] == True:
-        #             count += 1
-
-        #     if count > 1:
-        #         target_location = CD.shortestPath(robotCurrentLocation, TableB_closeArea, States)
-        #     else:
-        #         for index in range(4):
-        #             if States[index] == True:
-        #                 target_location = areas[index]
-        #                 break
-        # elif TableC_Flag:
-        #     numClsFnd = (numClsFnd_MlPath, numClsFnd_mPath, numClsFnd_BmPath, numClsFnd_BlPath)
-        #     areas = ("ML", "M", "BM", "BL")
-        #     States = CD.thelessCrowdedArea(numClsFnd, areas)
-
-        #     count = 0
-        #     for index in range(4):
-        #         if States[index] == True:
-        #             count += 1
-
-        #     if count > 1:
-        #         target_location = CD.shortestPath(robotCurrentLocation, TableC_closeArea, States)
-        #     else:
-        #         for index in range(4):
-        #             if States[index] == True:
-        #                 target_location = areas[index]
-        #                 break
-        # elif TableD_Flag:
-        #     numClsFnd = (numClsFnd_mPath, numClsFnd_MrPath, numClsFnd_BmPath, numClsFnd_BrPath)
-        #     areas = ("M", "MR", "BM", "BR")
-        #     States = CD.thelessCrowdedArea(numClsFnd, areas)
-
-        #     count = 0
-        #     for index in range(4):
-        #         if States[index] == True:
-        #             count += 1
-
-        #     if count > 1:
-        #         target_location = CD.shortestPath(robotCurrentLocation, TableD_closeArea, States)
-        #     else:
-        #         for index in range(4):
-        #             if States[index] == True:
-        #                 target_location = areas[index]
-        #                 break
-
-        # print(f"Target Location: {target_location}")
 
 
         if Show_Text_NumOfClass:
@@ -367,7 +256,7 @@ def main():
             
             # cv2.putText(frame, f"Target Area: {target_location}", org=(1050, 30), fontFace=fontFace, fontScale=fontScale, color=color, thickness=textThickness)
 
-        cv2.imshow("Video Frame", frame)
+        cv2.imshow(window_frame_name, frame)
 
         if cv2.waitKey(0) & 0xFF == 27: # ESC
             break
