@@ -1,1 +1,0 @@
-Weights will be downloaded to this path
