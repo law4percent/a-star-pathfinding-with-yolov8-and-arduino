@@ -1,0 +1,1 @@
+This images was used for training YOLOv8 model.
