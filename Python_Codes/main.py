@@ -10,6 +10,10 @@ import calculate_distance as cd
 import canteen_areas as ca
 from canteen_areas import Area, _center_X_, _top_left_corner_
 
+from pathfinding.core.grid import Grid
+from pathfinding.finder.a_star import AStarFinder
+from pathfinding.core.diagonal_movement import DiagonalMovement
+
 Show_Text_NumOfClass = True
 Show_Zones = True
 Show_BoundingBox_ClsID = False
@@ -53,11 +57,34 @@ def boundingBox_ClsID_display(Frame, Rec_pos, Color, Text, Text_pos):
 def PolygonTest(Area, XY):
     return cv2.pointPolygonTest(np.array(Area, np.int32), XY, False)
 
+def ConvertToMatrix_Array_of_Array(_array):
+    rows = 6
+    columns = 8
+    matrix = [[0] * columns for _ in range(rows)]
+    
+    _row = 0
+    _column = 0
+
+    for index in range(len(_array)):
+        matrix[_row][_column] = _array[index]
+        _column += 1
+        if _column == columns:
+            _column = 0
+            _row += 1
+
+    return matrix
+
+def ConvertToTuple(path):
+    path_list= []
+    for i in range(len(path)):
+        path_list.append(tuple(path[i]))
+    return path_list
+
 def main():
     frame_width = 1280 # 1020
     frame_height = 720 # 500
 
-    transform_frame_name = "Birds Eye View"
+    transform_frame_name = "Bird's Eye View"
     window_frame_name = "Normal Video"
     cv2.namedWindow(transform_frame_name)
     cv2.setMouseCallback(transform_frame_name, VideoFrame)
@@ -71,6 +98,9 @@ def main():
     class_list = Split_Class_List(COCO_FILE_PATH) 
 
     count = 0
+
+    requestIDandCommand = ""
+    go_flag = False
 
     if not cap.isOpened():
         print("Cannot open camera")
@@ -101,11 +131,9 @@ def main():
         count += 1
         if count % 5 != 0:
             continue
-
         
-        detect_results = model.predict(source=[transform_frame], conf=0.45, save=False)
-        pred_res = detect_results[0].boxes.data
-        px = pd.DataFrame(pred_res).astype("float")
+        pred_result = model.predict(source=[transform_frame], conf=0.45, save=False)
+        px = pd.DataFrame(pred_result[0].boxes.data).astype("float")
 
         PL_00 = []
         PL_01 = []
@@ -170,13 +198,13 @@ def main():
             PL_50, PL_51, PL_52, PL_53, PL_54, PL_55, PL_56, PL_57,
         )
 
-        binary_map = [
-                        1, 1, 1, 1, 1, 1, 1, 1,
-                        1, 0, 0, 1, 1, 0, 0, 1,
-                        1, 0, 0, 1, 1, 0, 0, 1,
-                        1, 1, 1, 1, 1, 1, 1, 1,
-                        1, 0, 0, 1, 1, 0, 0, 1,
-                        1, 1, 1, 1, 1, 1, 1, 1,
+        binary_map = [# 0  1  2  3  4  5  6  7
+                        1, 1, 1, 1, 1, 1, 1, 1, # 0
+                        1, 0, 0, 1, 1, 0, 0, 1, # 1
+                        1, 0, 0, 1, 1, 0, 0, 1, # 2
+                        1, 1, 1, 1, 1, 1, 1, 1, # 3
+                        1, 0, 0, 1, 1, 0, 0, 1, # 4
+                        1, 1, 1, 1, 1, 1, 1, 1, # 5
                     ]
         
         sum_of_cls = 0
@@ -191,9 +219,9 @@ def main():
             detected_class_index = int(row[5])
             class_ID_name = class_list[detected_class_index]
 
-            cls_cx = int(x1 + x2) // 2
-            cls_cy = int(y1 + y2) // 2
-            cls_center = (cls_cx, cls_cy)
+            cls_center_x = int(x1 + x2) // 2
+            cls_center_y = int(y1 + y2) // 2
+            cls_center_pnt = (cls_center_x, cls_center_y)
             w, h = x2 - x1, y2 - y1
 
             rec_pos = (x1, y1, w, h)
@@ -201,21 +229,15 @@ def main():
             clsID_and_Conf = f"{class_ID_name} {confidence}%"
 
             for index in range(len(Area)):
-                if PolygonTest(Area=Area[index], XY=cls_center) >= 0:
+                if PolygonTest(Area=Area[index], XY=cls_center_pnt) >= 0:
+                    centerPnt_BndBoxColor = (0, 0, 255)
                     if Show_BoundingBox_ClsID:
-                        boundingBox_ClsID_display(Frame=transform_frame, Rec_pos=rec_pos, Color=(0, 0 ,255), Text=clsID_and_Conf, Text_pos=text_pos)
-                    cv2.circle(transform_frame, cls_center, 4, (0, 0 ,255), -1)
+                        boundingBox_ClsID_display(Frame=transform_frame, Rec_pos=rec_pos, Color=centerPnt_BndBoxColor, Text=clsID_and_Conf, Text_pos=text_pos)
+                    cv2.circle(transform_frame, cls_center_pnt, 5, centerPnt_BndBoxColor, -1) #158, 245, 255
                     list_to_append = path_lists[index]
-                    list_to_append.append(cls_cx)
+                    list_to_append.append(cls_center_x)
                     binary_map[index] = 0 if len(list_to_append) > 0 else 1
                     sum_of_cls += len(list_to_append)
-
-        print("======= Binary Map =======\n")
-        for index in range(len(Area)):
-            print(f"{binary_map[index]} ", end="")
-            if (index+1) % 8 == 0:
-                print("")
-        print("\n======= End Map =======")
 
         if Show_Zones:
             warningColor = (0, 0, 255)
@@ -233,6 +255,33 @@ def main():
                     cv2.putText(transform_frame, f"Total Class: {sum_of_cls}", (1100, 35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
                 if Show_Area_Index:
                     cv2.putText(transform_frame, f"{index}", _top_left_corner_[index], fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
+
+        _matrix = ConvertToMatrix_Array_of_Array(binary_map)
+        grid = Grid(matrix=_matrix)
+        grid.cleanup()
+        start_x = 2
+        start_y = 0
+        end_x = 7
+        end_y = 5
+
+        start_area = grid.node(start_x, start_y) # x y
+        end_area = grid.node(end_x, end_y) # x y
+
+        finder = AStarFinder(diagonal_movement=DiagonalMovement.never)
+        path, runs = finder.find_path(start_area, end_area, grid)
+
+
+        print("======= Binary Map =======\n")
+        for index in range(len(Area)):
+            print(f"{binary_map[index]} ", end="")
+            if (index+1) % 8 == 0:
+                print("")
+        print("\n======= Binary Map End =======\n")
+
+        print("======= Demo Map =======\n")
+        print(grid.grid_str(path=path, start=start_area, end=end_area))
+        print("======= Demo Map End =======\n")
+
 
         cv2.imshow(transform_frame_name, transform_frame)
         # cv2.imshow(window_frame_name, frame)
