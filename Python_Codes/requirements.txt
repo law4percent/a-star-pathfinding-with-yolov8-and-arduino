@@ -4,3 +4,4 @@ supervision>=0.20.0
 ultralytics
 pyserial
 cvzone
+pathfinding
