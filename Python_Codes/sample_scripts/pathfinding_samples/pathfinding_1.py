@@ -36,11 +36,11 @@ grid = Grid(matrix=_matrix)
 grid.cleanup()
 start_x = 2
 start_y = 0
-end_x = 5
-end_y = 7
+end_x = 7
+end_y = 5
 
 start_area = grid.node(start_x, start_y) # x y
-end_area = grid.node(end_x, end_x) # x y
+end_area = grid.node(end_x, end_y) # x y
 
 finder = AStarFinder(diagonal_movement=DiagonalMovement.never)
 path, runs = finder.find_path(start_area, end_area, grid)
