@@ -10,7 +10,6 @@ import calculate_distance as cd
 import canteen_areas as ca
 from canteen_areas import Area, _center_X_, _top_left_corner_
 
-# Show_Text_TrgtAreas = False
 Show_Text_NumOfClass = True
 Show_Zones = True
 Show_BoundingBox_ClsID = False
@@ -174,7 +173,7 @@ def main():
         binary_map = [
                         1, 1, 1, 1, 1, 1, 1, 1,
                         1, 0, 0, 1, 1, 0, 0, 1,
-                        1, 1, 1, 1, 1, 1, 1, 1,
+                        1, 0, 0, 1, 1, 0, 0, 1,
                         1, 1, 1, 1, 1, 1, 1, 1,
                         1, 0, 0, 1, 1, 0, 0, 1,
                         1, 1, 1, 1, 1, 1, 1, 1,
@@ -208,11 +207,9 @@ def main():
                     cv2.circle(transform_frame, cls_center, 4, (0, 0 ,255), -1)
                     list_to_append = path_lists[index]
                     list_to_append.append(cls_cx)
-                    if binary_map[index] != 0:
-                        binary_map[index] = 0 if len(list_to_append) > 0 else 1
+                    binary_map[index] = 0 if len(list_to_append) > 0 else 1
                     sum_of_cls += len(list_to_append)
 
-        
         print("======= Binary Map =======\n")
         for index in range(len(Area)):
             print(f"{binary_map[index]} ", end="")
@@ -232,7 +229,7 @@ def main():
                 color = defaultColor if binary_map[index] > 0 else warningColor
                 cv2.polylines(transform_frame, [np.array(Area[index], np.int32)], True, color, 2)
                 if Show_Text_NumOfClass:
-                    cv2.putText(transform_frame, f"{0 if len(path_lists[index]) > 0 else 1}", _center_X_[index], fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
+                    cv2.putText(transform_frame, f"{binary_map[index]}", _center_X_[index], fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
                     cv2.putText(transform_frame, f"Total Class: {sum_of_cls}", (1100, 35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
                 if Show_Area_Index:
                     cv2.putText(transform_frame, f"{index}", _top_left_corner_[index], fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
