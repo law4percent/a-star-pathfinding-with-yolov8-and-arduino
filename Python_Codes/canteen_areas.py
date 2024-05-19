@@ -193,3 +193,8 @@ TableD_closeArea = [
     }
 ]
 
+
+TableA_nearArea = [(2, 0), (3, 2), (2, 3), (0, 2)]
+TableB_nearArea = [(6, 0), (7, 2), (6, 3), (4, 2)]
+TableC_nearArea = [(2, 3), (3, 4), (2, 5), (0, 4)]
+TableD_nearArea = [(6, 3), (7, 4), (6, 5), (4, 4)]
