@@ -10,10 +10,6 @@ import calculate_distance as cd
 import canteen_areas as ca
 from canteen_areas import Area, _center_X_, _top_left_corner_
 
-from pathfinding.core.grid import Grid
-from pathfinding.finder.a_star import AStarFinder
-from pathfinding.core.diagonal_movement import DiagonalMovement
-
 Show_Text_NumOfClass = True
 Show_Zones = True
 Show_BoundingBox_ClsID = False
@@ -37,7 +33,7 @@ def decodeReceivedDataCommand():
     print(f"Received: {received_command}")
     return received_command
 
-def VideoFrame(event, x, y, flags, param):
+def videoFrame(event, x, y, flags, param):
     if event == cv2.EVENT_MOUSEMOVE:
         point = [x, y]
         print(point)
@@ -74,11 +70,54 @@ def ConvertToMatrix_Array_of_Array(_array):
 
     return matrix
 
-def ConvertToTuple(path):
+def ConvertToListOfTuple(path):
     path_list= []
     for i in range(len(path)):
         path_list.append(tuple(path[i]))
     return path_list
+
+def ConvertToBirdEyeView(frame, matrix, HW):
+    return cv2.warpPerspective(frame, matrix, HW)
+
+def getTheTargetArea(targetTable_listOfnear_areaXY:list, numberOfCls_eachArea:list, Robot_Current_Location:tuple) -> tuple:
+    # ELIMINATE Areas that have more than 2 cls
+    max_cls = 3
+    get_remain_areas = []
+    count = 0
+
+    for index in range(len(numberOfCls_eachArea)):
+        if numberOfCls_eachArea[index] >= 1: #max_cls:
+            pass
+        else:
+            count += 1
+            get_remain_areas.append(targetTable_listOfnear_areaXY[index])
+
+        # Find the shortest area
+        if count == 3:
+            min_distance = float('inf')
+            closest_area = None
+            print("Same all values")
+            for area in get_remain_areas:
+                distance = cd.calculateDistance(pointA=Robot_Current_Location, pointB=area)
+                if distance < min_distance:
+                    min_distance = distance
+                    closest_area = area
+            return closest_area
+
+
+    # Find the shortest area
+    if len(get_remain_areas) > 1:
+        min_distance = float('inf')
+        closest_area = None
+        for area in get_remain_areas:
+            distance = cd.calculateDistance(pointA=Robot_Current_Location, pointB=area)
+            if distance < min_distance:
+                min_distance = distance
+                closest_area = area
+        return closest_area
+    
+    elif len(get_remain_areas) == 1:
+        return get_remain_areas[0]
 
 def main():
     frame_width = 1280 # 1020
@@ -87,7 +126,7 @@ def main():
     transform_frame_name = "Bird's Eye View"
     window_frame_name = "Normal Video"
     cv2.namedWindow(transform_frame_name)
-    cv2.setMouseCallback(transform_frame_name, VideoFrame)
+    cv2.setMouseCallback(transform_frame_name, videoFrame)
 
     VIDEO_SOURCE_PATH = "inference/Videos/SAMPLE_VIDEO.mp4"
     yolov8_weights = "weights/best2.pt"
@@ -99,8 +138,20 @@ def main():
 
     count = 0
 
-    requestIDandCommand = ""
+    pnts1 = np.float32([ca.entire_area[0], ca.entire_area[1], ca.entire_area[3], ca.entire_area[2]])
+    pnts2 = np.float32([[0,0], [0,frame_height], [frame_width,0], [frame_width,frame_height]])
+    matrix = cv2.getPerspectiveTransform(pnts1, pnts2)
+
+    list_requestTable_queu = []
+    currentRequestingTable = ""
     go_flag = False
+    createPath = False
+    shortestPath_x = 0
+    shortestPath_y = 0
+    Table_A_Flag = False
+    Table_B_Flag = False
+    Table_C_Flag = False
+    Table_D_Flag = False
 
     if not cap.isOpened():
         print("Cannot open camera")
@@ -108,13 +159,8 @@ def main():
 
     while True:
         success, frame = cap.read()
-
         frame = cv2.resize(frame, (frame_width, frame_height))
-        pnts1 = np.float32([ca.entire_area[0], ca.entire_area[1], ca.entire_area[3], ca.entire_area[2]])
-        pnts2 = np.float32([[0,0], [0,frame_height], [frame_width,0], [frame_width,frame_height]])
-
-        matrix = cv2.getPerspectiveTransform(pnts1, pnts2)
-        transform_frame = cv2.warpPerspective(frame, matrix, (frame_width, frame_height))
+        transform_frame = ConvertToBirdEyeView(frame, matrix, (frame_width, frame_height))
 
         if not success:
             cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
@@ -122,12 +168,11 @@ def main():
         
         if ARDUINO:
             if arduino.in_waiting > 0:
-                requestIDandCommand = decodeReceivedDataCommand() # to receive TABLE_A_1 ||TABLE_A_0
-                reqFlag = True
-            else:
-                pass
-        
-            
+                requestNameandCommand = decodeReceivedDataCommand() # to receive A_1 || _A_0
+                if requestNameandCommand[0] == ca.Tables_NearAreas[0]["table_name"]:
+                    if requestNameandCommand[2] == "1":
+                        Table_A_Flag = True
+          
         count += 1
         if count % 5 != 0:
             continue
@@ -239,6 +284,11 @@ def main():
                     binary_map[index] = 0 if len(list_to_append) > 0 else 1
                     sum_of_cls += len(list_to_append)
 
+        print(f"A Top: {len(PL_02)} Right: {len(PL_23)} Bottom: {len(PL_32)} Left: {len(PL_20)}")
+        print(f"B Top: {len(PL_06)} Right: {len(PL_27)} Bottom: {len(PL_36)} Left: {len(PL_24)}")
+        print(f"C Top: {len(PL_32)} Right: {len(PL_43)} Bottom: {len(PL_52)} Left: {len(PL_40)}")
+        print(f"D Top: {len(PL_36)} Right: {len(PL_47)} Bottom: {len(PL_56)} Left: {len(PL_44)}")
+
         if Show_Zones:
             warningColor = (0, 0, 255)
             defaultColor = (0, 200, 0)
@@ -256,32 +306,46 @@ def main():
                 if Show_Area_Index:
                     cv2.putText(transform_frame, f"{index}", _top_left_corner_[index], fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
 
-        _matrix = ConvertToMatrix_Array_of_Array(binary_map)
-        grid = Grid(matrix=_matrix)
-        grid.cleanup()
-        start_x = 2
-        start_y = 0
-        end_x = 7
-        end_y = 5
-
-        start_area = grid.node(start_x, start_y) # x y
-        end_area = grid.node(end_x, end_y) # x y
-
-        finder = AStarFinder(diagonal_movement=DiagonalMovement.never)
-        path, runs = finder.find_path(start_area, end_area, grid)
-
-
         print("======= Binary Map =======\n")
         for index in range(len(Area)):
             print(f"{binary_map[index]} ", end="")
             if (index+1) % 8 == 0:
-                print("")
+                print()
         print("\n======= Binary Map End =======\n")
 
-        print("======= Demo Map =======\n")
-        print(grid.grid_str(path=path, start=start_area, end=end_area))
-        print("======= Demo Map End =======\n")
+        robot_default_location = [0, 5]
+        Robot_Current_Location = [0, 0]
+        target_area = None
 
+        if Table_A_Flag:
+            TableA_listOf_areaXY = ca.TableA_nearArea
+            numberOfCls_eachArea = [len(PL_02), len(PL_23), len(PL_32), len(PL_20)]
+            target_area = getTheTargetArea(TableA_listOf_areaXY, numberOfCls_eachArea, Robot_Current_Location)
+            Table_A_Flag = False 
+
+        elif Table_B_Flag:
+            TableB_listOf_areaXY = ca.TableB_nearArea
+            numberOfCls_eachArea = [len(PL_06), len(PL_27), len(PL_36), len(PL_24)]
+            target_area = getTheTargetArea(TableB_listOf_areaXY, numberOfCls_eachArea, Robot_Current_Location)
+            Table_B_Flag = False
+
+        elif Table_C_Flag:
+            TableC_listOf_areaXY = ca.TableC_nearArea
+            numberOfCls_eachArea = [len(PL_32), len(PL_43), len(PL_52), len(PL_40)]
+            target_area = getTheTargetArea(TableC_listOf_areaXY, numberOfCls_eachArea, Robot_Current_Location)
+            Table_C_Flag = False
+
+        elif Table_D_Flag == False:
+            TableD_listOf_areaXY = ca.TableD_nearArea
+            numberOfCls_eachArea = [len(PL_36), len(PL_47), len(PL_56), len(PL_44)]
+            target_area = getTheTargetArea(TableD_listOf_areaXY, numberOfCls_eachArea, Robot_Current_Location)
+            Table_D_Flag = False
+
+        if target_area != None:
+            _matrix = ConvertToMatrix_Array_of_Array(binary_map)
+            shortest_pathway = cd.CreatePath(Robot_Current_Location, target_area, _matrix)
+            cv2.putText(transform_frame, f"Target Area: {target_area}", (50, 35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
+            cv2.putText(transform_frame, f"Path way: {ConvertToListOfTuple(shortest_pathway)}", (50, 720-35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
 
         cv2.imshow(transform_frame_name, transform_frame)
         # cv2.imshow(window_frame_name, frame)
