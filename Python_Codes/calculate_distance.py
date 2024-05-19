@@ -1,4 +1,7 @@
 import math
+from pathfinding.core.grid import Grid
+from pathfinding.finder.a_star import AStarFinder
+from pathfinding.core.diagonal_movement import DiagonalMovement
 
 def calculateDistance(pointA: tuple, pointB: tuple):
     x1, y1 = pointA
@@ -10,47 +13,7 @@ def calculateDistance(pointA: tuple, pointB: tuple):
     distance = math.sqrt(squared_diff_x + squared_diff_y)
     return distance
 
-def shortestPath(current_loc: tuple, Areas: dict, States: list):
-    nearest_area_A = Areas[0] 
-    nearest_area_B = Areas[1]
-    nearest_area_C = Areas[2]
-    nearest_area_D = Areas[3]
-    
-    area_name = "area_name"
-    area_pos = "pos"
-
-    A_xy = nearest_area_A[area_pos] if States[0] else (5000, 5000)
-    A_name = nearest_area_A[area_name]
-    distanceA = calculateDistance(current_loc, A_xy)
-
-    B_xy = nearest_area_B[area_pos] if States[1] else (5000, 5000)
-    B_name = nearest_area_B[area_name]
-    distanceB = calculateDistance(current_loc, B_xy)
-
-    C_xy = nearest_area_C[area_pos] if States[2] else (5000, 5000)
-    C_name = nearest_area_C[area_name]
-    distanceC = calculateDistance(current_loc, C_xy)
-
-    D_xy = nearest_area_D[area_pos] if States[3] else (5000, 5000)
-    D_name = nearest_area_D[area_name]
-    distanceD = calculateDistance(current_loc, D_xy)
-    
-    shortest_path = min(distanceA, distanceB, distanceC, distanceD)
-    shortest_path_name = ""
-
-    if shortest_path == distanceA:
-        shortest_path_name = A_name
-    elif shortest_path == distanceB:
-        shortest_path_name = B_name
-    elif shortest_path == distanceC:
-        shortest_path_name = C_name
-    else:
-        shortest_path_name = D_name
-
-    print(f"\n[ Shortest Distance: {shortest_path_name} ]\n")
-    return shortest_path_name
-
-def thelessCrowdedArea(numClsFnd: tuple, areas: tuple) -> list:
+def lessCrowdedArea(numClsFnd: tuple, areas: tuple) -> list:
     minimum = min(numClsFnd)
     lessCrowdedArea = [name for value, name in zip(numClsFnd, areas) if value == minimum]
     convertToListOfBool = [False] * len(areas)
@@ -61,4 +24,25 @@ def thelessCrowdedArea(numClsFnd: tuple, areas: tuple) -> list:
 
     print(convertToListOfBool)
     return convertToListOfBool
+
+def CreatePath(start_XY: tuple, end_XY: tuple, _matrix, display_demo = True):
+    grid = Grid(matrix=_matrix)
+    grid.cleanup()
+    start_x = start_XY[0]
+    start_y = start_XY[1]
+    end_x = end_XY[0]
+    end_y = end_XY[1]
+
+    start_area = grid.node(start_x, start_y) # x y
+    end_area = grid.node(end_x, end_y) # x y
+
+
+    finder = AStarFinder(diagonal_movement=DiagonalMovement.never)
+    path, runs = finder.find_path(start_area, end_area, grid)
+
+    if display_demo:
+        print("======= Demo Map =======\n")
+        print(grid.grid_str(path=path, start=start_area, end=end_area))
+        print("\n======= Demo Map End =======\n")
+    return path
 # print(theShortestDistance(((233, 652)), TableA_closeArea[0], TableA_closeArea[1], TableA_closeArea[2], TableA_closeArea[3]))
