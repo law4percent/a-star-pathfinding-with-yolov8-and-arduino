@@ -67,13 +67,17 @@ Area = [
 ]
 
 _center_X_ = []
-_top_left_corner_ = []
+_bottom_left_corner_ = []
+_bottom_center_corner_ = []
 
 for index in range(len(Area)):
     x_center = (Area[index][1][0] + Area[index][3][0]) // 2
     y_center = (Area[index][1][1] + Area[index][3][1]) // 2
+    x_bottom = (Area[index][2][0]) // 2
+    y_bottom = (Area[index][2][1])
     _center_X_.append((x_center, y_center))
-    _top_left_corner_.append(Area[index][1])
+    _bottom_left_corner_.append(Area[index][1])
+    # _bottom_center_corner_.append((x_bottom, y_bottom))
 
 TableA_nearArea = [(2, 0), (3, 2), (2, 3), (0, 2)]
 TableB_nearArea = [(6, 0), (7, 2), (6, 3), (4, 2)]
