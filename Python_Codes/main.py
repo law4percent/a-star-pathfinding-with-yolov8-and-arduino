@@ -10,13 +10,14 @@ import calculate_distance as cd
 import canteen_areas as ca
 from canteen_areas import Area, _center_X_, _bottom_left_corner_
 
+ShowOnFrame_Zones = True
+ShowOnFrame_RobotPathZones = True
+ShowOnFrame_ObstacledZones = False
 ShowOnFrame_NumOfClass = True
 ShowOnFrame_EntireArea_Zone = True
 ShowOnFrame_BoundingBoxAndClsID = False
 ShowOnFrame_IndexNumOfEveryArea = True
 ShowOnFrame_Binary = True
-ShowOnFrame_Zones = True
-ShowOnFrame_RobotPathZones = True
 ARDUINO = False
 DEBUG_CMD = True
 DEBUG_FRAME = True
@@ -398,9 +399,10 @@ def main():
                 for ind in range(len(Area)):
                     cv2.polylines(transform_frame, [np.array(Area[ind], np.int32)], True, defaultColor, 2)
 
-                for ind in range(len(Area)):
-                    if not binary_map[ind]:
-                        cv2.polylines(transform_frame, [np.array(Area[ind], np.int32)], True, warningColor, 2)
+                if ShowOnFrame_ObstacledZones:
+                    for ind in range(len(Area)):
+                        if not binary_map[ind]:
+                            cv2.polylines(transform_frame, [np.array(Area[ind], np.int32)], True, warningColor, 2)
 
                 if ShowOnFrame_RobotPathZones and target_area != None:
                     arrayOfNumb = []
@@ -424,7 +426,7 @@ def main():
                     End_Area = matrixOfNumb[row_eArea][col_eArea]
                     listOfPath_Index.sort()
                     start_color = (255, 0, 0)
-                    end_color = (71, 188, 255)
+                    end_color = (255, 220, 0)
                     path_color = (0, 255, 0)
                     colors = [start_color, end_color, path_color]
 
@@ -434,8 +436,8 @@ def main():
                             if listOfPath_Index[increment_index] == ind:
                                 cv2.polylines(transform_frame, [np.array(Area[ind], np.int32)], True, colors[2], thickness=3)
                                 increment_index += 1
-                    cv2.polylines(transform_frame, [np.array(Area[Start_Area], np.int32)], True, colors[0], thickness=3)
-                    cv2.polylines(transform_frame, [np.array(Area[End_Area], np.int32)], True, colors[1], thickness=3)
+                    cv2.polylines(transform_frame, [np.array(Area[Start_Area], np.int32)], True, colors[0], thickness=5)
+                    cv2.polylines(transform_frame, [np.array(Area[End_Area], np.int32)], True, colors[1], thickness=5)
 
             if target_area != None:
                 directional_format = cd.convertPathToDirection(shortest_path_tuple_format, row_max=6, col_max=8)
