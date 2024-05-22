@@ -302,7 +302,7 @@ def main():
                         PL_40, PL_41, PL_42, PL_43, PL_44, PL_45, PL_46, PL_47,
                         PL_50, PL_51, PL_52, PL_53, PL_54, PL_55, PL_56, PL_57,
                     )
-        NumberOfClsInParticularArea = [0] * len(Area)
+        navigateRobotCls = [0] * len(Area)
         binary_map = [# 0  1  2  3  4  5  6  7
                         1, 1, 1, 1, 1, 1, 1, 1, # 0
                         1, 0, 0, 1, 1, 0, 0, 1, # 1
@@ -347,17 +347,16 @@ def main():
                     if class_ID_name == "robot":
                         cv2.circle(transform_frame, cls_center_pnt, 5, robot_color, -1)
                         getRobot_index = area_indx
-                        NumberOfClsInParticularArea[area_indx] = 'P'#len(list_to_append)
+                        navigateRobotCls[area_indx] = 'R'
                     else:
                         cv2.circle(transform_frame, cls_center_pnt, 5, centerPnt_BndBoxColor, -1)
                         binary_map[area_indx] = 0 if len(list_to_append) > 0 else 1
+
                     sum_of_cls += len(list_to_append)
         
-        # print(NumberOfClsInParticularArea)
-        # print(ConvertToMatrixOfArray(NumberOfClsInParticularArea, frame_row, frame_column))
         directional_format = []
         shortest_path_tuple_format = []
-        Robot_Current_Location = navigateRobotLocation(NumberOfClsInParticularArea, frame_row, frame_column, 'P') if getRobot_index != None else robot_default_location
+        Robot_Current_Location = navigateRobotLocation(navigateRobotCls, frame_row, frame_column, 'R') if getRobot_index != None else robot_default_location
         print(f"Robot Loction: {Robot_Current_Location}")
         # break
         directional_format = []
