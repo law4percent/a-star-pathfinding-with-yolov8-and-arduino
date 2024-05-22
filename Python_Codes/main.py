@@ -12,7 +12,7 @@ from canteen_areas import Area, _center_X_, _bottom_left_corner_
 
 ShowOnFrame_Zones = True
 ShowOnFrame_RobotPathZones = True
-ShowOnFrame_ObstacledZones = False
+ShowOnFrame_ObstacledZones = True
 ShowOnFrame_NumOfClass = True
 ShowOnFrame_EntireArea_Zone = True
 ShowOnFrame_BoundingBoxAndClsID = False
@@ -91,7 +91,7 @@ def ConvertToListOfTuple(path):
 def ConvertToBirdEyeView(frame, matrix, HW):
     return cv2.warpPerspective(frame, matrix, HW)
 
-def getTheTargetArea(targetTable_listOfnear_areaXY:list, numberOfCls_eachArea:list, Robot_Current_Location:tuple, max_cls, display_data=True) -> tuple:
+def getTheTargetArea(targetTable_listOfnear_areaXY:list, numberOfCls_eachArea:list, startArea:tuple, max_cls, display_data=True) -> tuple:
     get_remain_areas = []
     count = 0
     # ELIMINATE Areas that have more than max_cls
@@ -107,26 +107,40 @@ def getTheTargetArea(targetTable_listOfnear_areaXY:list, numberOfCls_eachArea:li
             min_distance = float('inf')
             closest_area = None
 
-            for area in get_remain_areas:
-                distance = cd.calculateDistance(pointA=Robot_Current_Location, pointB=area)
+            for targetArea in get_remain_areas:
+                distance = cd.calculateDistance(pointA=startArea, pointB=targetArea)
                 if distance < min_distance:
                     min_distance = distance
-                    closest_area = area
+                    closest_area = targetArea
             return closest_area
 
     # Find the shortest area
     if len(get_remain_areas) > 1:
         min_distance = float('inf')
         closest_area = None
-        for area in get_remain_areas:
-            distance = cd.calculateDistance(pointA=Robot_Current_Location, pointB=area)
+        for targetArea in get_remain_areas:
+            distance = cd.calculateDistance(pointA=startArea, pointB=targetArea)
             if distance < min_distance:
                 min_distance = distance
-                closest_area = area
+                closest_area = targetArea
         return closest_area
     
     elif len(get_remain_areas) == 1:
         return get_remain_areas[0]
+
+def navigateRobotLocation(array1D, row, col, keyword):
+    matrixOfnumOfCls = ConvertToMatrixOfArray(array1D, row, col, False)
+    countRow = 0
+    countCol = 0
+    for Row in matrixOfnumOfCls:
+        for Col in Row:
+            if Col == keyword:
+                X = countCol
+                Y = countRow
+                return (X, Y)
+            countCol += 1
+        countCol = 0
+        countRow += 1
 
 def main():
     transform_frame_name = "Bird's Eye View"
@@ -288,10 +302,11 @@ def main():
                         PL_40, PL_41, PL_42, PL_43, PL_44, PL_45, PL_46, PL_47,
                         PL_50, PL_51, PL_52, PL_53, PL_54, PL_55, PL_56, PL_57,
                     )
+        NumberOfClsInParticularArea = [0] * len(Area)
         binary_map = [# 0  1  2  3  4  5  6  7
                         1, 1, 1, 1, 1, 1, 1, 1, # 0
                         1, 0, 0, 1, 1, 0, 0, 1, # 1
-                        1, 0, 0, 1, 1, 0, 0, 1, # 2
+                        1, 1, 1, 1, 1, 1, 1, 1, # 2
                         1, 1, 1, 1, 1, 1, 1, 1, # 3
                         1, 0, 0, 1, 1, 0, 0, 1, # 4
                         1, 1, 1, 1, 1, 1, 1, 1, # 5
@@ -323,11 +338,8 @@ def main():
                 if PolygonTest(Area=Area[area_indx], XY=cls_center_pnt) >= 0:
                     centerPnt_BndBoxColor = (0, 0, 255)
                     robot_color = (255, 0, 160)
-
                     list_to_append = path_lists[area_indx]
                     list_to_append.append(cls_center_x)
-                    binary_map[area_indx] = 0 if len(list_to_append) > 0 else 1
-                    sum_of_cls += len(list_to_append)
                     
                     if ShowOnFrame_BoundingBoxAndClsID:
                         boundingBox_ClsID_display(Frame=transform_frame, Rec_pos=rec_pos, Color=centerPnt_BndBoxColor, Text=clsID_and_Conf, Text_pos=text_pos)
@@ -335,12 +347,19 @@ def main():
                     if class_ID_name == "robot":
                         cv2.circle(transform_frame, cls_center_pnt, 5, robot_color, -1)
                         getRobot_index = area_indx
+                        NumberOfClsInParticularArea[area_indx] = 'P'#len(list_to_append)
                     else:
                         cv2.circle(transform_frame, cls_center_pnt, 5, centerPnt_BndBoxColor, -1)
+                        binary_map[area_indx] = 0 if len(list_to_append) > 0 else 1
+                    sum_of_cls += len(list_to_append)
         
+        # print(NumberOfClsInParticularArea)
+        # print(ConvertToMatrixOfArray(NumberOfClsInParticularArea, frame_row, frame_column))
         directional_format = []
         shortest_path_tuple_format = []
-        Robot_Current_Location = [0, 0]
+        Robot_Current_Location = navigateRobotLocation(NumberOfClsInParticularArea, frame_row, frame_column, 'P') if getRobot_index != None else robot_default_location
+        print(f"Robot Loction: {Robot_Current_Location}")
+        # break
         directional_format = []
         target_area = None
 
@@ -410,20 +429,19 @@ def main():
                         arrayOfNumb.append(indexOf_1Darray)
                     matrixOfNumb = ConvertToMatrixOfArray(arrayOfNumb, frame_row, frame_column, False)
                     listOfPath_Index = []
-
                     # Convert from X and Y to ROWs and COLs
                     for coord in shortest_path_tuple_format:
                         ROW = coord[1]
                         COL = coord[0]
                         listOfPath_Index.append(matrixOfNumb[ROW][COL])
-
-                    length_ = len(listOfPath_Index)
                     row_sArea = Robot_Current_Location[1]
                     col_sArea = Robot_Current_Location[0]
-                    Start_Area = matrixOfNumb[row_sArea][col_sArea]
                     row_eArea = target_area[1]
                     col_eArea = target_area[0]
+
+                    Start_Area = matrixOfNumb[row_sArea][col_sArea]
                     End_Area = matrixOfNumb[row_eArea][col_eArea]
+                    length_ = len(listOfPath_Index)
                     listOfPath_Index.sort()
                     start_color = (255, 0, 0)
                     end_color = (255, 220, 0)
