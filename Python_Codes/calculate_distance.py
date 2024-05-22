@@ -67,30 +67,31 @@ def convertPathToDirection(path, row_max, col_max, display=True) -> list:
                 direction_list.append("B")
                 done = True
 
-    next_path = path[path_len - 1]
-    current_x = path[path_len - 1][0]
-    current_y = path[path_len - 1][1]
-    done = False
+    if path_len > 1:
+        next_path = path[path_len - 1]
+        current_x = path[path_len - 1][0]
+        current_y = path[path_len - 1][1]
+        done = False
 
-    if current_x - 1 >= 0 and not done:
-        if next_path == (current_x - 1, current_y):
-            direction_list.append("L")
-            done = True
+        if current_x - 1 >= 0 and not done:
+            if next_path == (current_x - 1, current_y):
+                direction_list.append("L")
+                done = True
 
-    if current_x + 1 < x_max and not done:
-        if next_path == (current_x + 1, current_y):
-            direction_list.append("R")
-            done = True
+        if current_x + 1 < x_max and not done:
+            if next_path == (current_x + 1, current_y):
+                direction_list.append("R")
+                done = True
 
-    if current_y - 1 >= 0 and not done:
-        if next_path == (current_x, current_y - 1):
-            direction_list.append("T")
-            done = True
+        if current_y - 1 >= 0 and not done:
+            if next_path == (current_x, current_y - 1):
+                direction_list.append("T")
+                done = True
 
-    if current_y + 1 < y_max and not done:
-        if next_path == (current_x, current_y + 1) :
-            direction_list.append("B")
-            done = True
+        if current_y + 1 < y_max and not done:
+            if next_path == (current_x, current_y + 1) :
+                direction_list.append("B")
+                done = True
 
     if display:
         print(direction_list)
