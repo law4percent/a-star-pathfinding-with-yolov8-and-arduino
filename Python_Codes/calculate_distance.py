@@ -8,7 +8,7 @@ def calculateDistance(pointA: tuple, pointB: tuple):
     x2, y2 = pointB
 
     squared_diff_x = (x2 - x1) ** 2
-    squared_diff_y = (-y2 - -y1) ** 2
+    squared_diff_y = (y2 - y1) ** 2
 
     distance = math.sqrt(squared_diff_x + squared_diff_y)
     return distance

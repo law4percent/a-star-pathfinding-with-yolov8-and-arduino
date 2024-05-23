@@ -25,9 +25,9 @@ binary_map = [
                 1, 1, 1, 1, 1, 1, 1, 1, # 0
                 1, 0, 0, 1, 1, 0, 0, 1, # 1
                 1, 0, 0, 1, 1, 0, 0, 1, # 2
-                1, 1, 1, 1, 1, 1, 1, 1, # 3
+                1, 1, 1, 1, 1, 1, 1, 0, # 3
                 1, 0, 0, 1, 1, 0, 0, 1, # 4
-                1, 1, 1, 1, 1, 1, 1, 1, # 5
+                1, 1, 1, 1, 1, 0, 1, 1, # 5
             ]
 
 _matrix = ConvertToMatrix_Array_of_Array(binary_map)
@@ -53,3 +53,4 @@ print(len(path))
 
 # print(path_list)
 # print(len(path))
+# Python_Codes/sample_scripts/pathfinding_samples/pathfinding_1.py
