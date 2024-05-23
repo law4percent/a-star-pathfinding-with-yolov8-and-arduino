@@ -10,7 +10,7 @@ import calculate_distance as cd
 import canteen_areas as ca
 from canteen_areas import Area, _center_X_, _bottom_left_corner_
 
-Birds_Eye_View = False
+Birds_Eye_View = True
 ShowOnFrame_EntireArea_Zone = True
 ShowOnFrame_Zones = True
 ShowOnFrame_RobotPathZones = True
@@ -19,7 +19,7 @@ ShowOnFrame_NumOfClass = True
 ShowOnFrame_BoundingBoxAndClsID = False
 ShowOnFrame_IndexNumOfEveryArea = False
 ShowOnFrame_Binary = False
-ShowTransformFrame = False
+ShowTransformFrame = True
 ShowNormalFrame = False
 ARDUINO = False
 DEBUG_CMD = True
@@ -387,7 +387,7 @@ def main():
                             boundingBox_ClsID_display(Frame=transform_frame, Rec_pos=rec_pos, Color=Other_Cls_Color, Text=clsID_and_Conf, Text_pos=text_pos)
                         cv2.circle(transform_frame, cls_center_pnt, 5, Other_Cls_Color, -1)
                         binary_map[area_indx] = 0 if len(list_to_append) > 0 else 1
-                    sum_of_cls += len(list_to_append)
+                    # sum_of_cls += len(list_to_append)
         
         directional_format = []
         shortest_path_tuple_format = []
@@ -449,6 +449,8 @@ def main():
                 defaultColor = (0, 0, 0)
                 for ind in range(len(Area)):
                     cv2.polylines(transform_frame, [np.array(Area[ind], np.int32)], True, defaultColor, 2)
+                    list_to_check = path_lists[ind]
+                    sum_of_cls += len(list_to_check) if len(list_to_check) > 0 else 0
 
                 if ShowOnFrame_ObstacledZones:
                     for ind in range(len(Area)):
