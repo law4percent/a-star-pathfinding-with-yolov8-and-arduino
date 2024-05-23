@@ -16,9 +16,11 @@ ShowOnFrame_Zones = True
 ShowOnFrame_RobotPathZones = True
 ShowOnFrame_ObstacledZones = True
 ShowOnFrame_NumOfClass = True
-ShowOnFrame_BoundingBoxAndClsID = True
+ShowOnFrame_BoundingBoxAndClsID = False
 ShowOnFrame_IndexNumOfEveryArea = False
 ShowOnFrame_Binary = False
+ShowTransformFrame = False
+ShowNormalFrame = False
 ARDUINO = False
 DEBUG_CMD = True
 DEBUG_FRAME = True
@@ -151,12 +153,12 @@ def main():
     window_frame_name = "Normal Video"
     
     if Birds_Eye_View:
-        cv2.namedWindow(transform_frame_name)
         if MouseCallBack:
+            cv2.namedWindow(transform_frame_name)
             cv2.setMouseCallback(transform_frame_name, videoFrame)
     else:
-        cv2.namedWindow(window_frame_name)
         if MouseCallBack:
+            cv2.namedWindow(window_frame_name)
             cv2.setMouseCallback(window_frame_name, videoFrame)
 
     VIDEO_SOURCE_PATH = "inference/Videos/Sample_Video.mp4"
@@ -488,7 +490,7 @@ def main():
                     cv2.polylines(transform_frame, [np.array(Area[End_Area], np.int32)], True, colors[1], thickness=5)
         
             if target_area != None:
-                directional_format = cd.convertPathToDirection(shortest_path_tuple_format, row_max=6, col_max=8)
+                directional_format = cd.convertPathToDirection(shortest_path_tuple_format, row_max=6, col_max=8, display=False)
 
                 cv2.putText(frame, f"Target Area: {target_area}", (50, 35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
                 cv2.putText(frame, f"Robot Location: {Robot_Current_Location}", (50, 35+35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
@@ -530,8 +532,10 @@ def main():
                     if ShowOnFrame_IndexNumOfEveryArea:
                         cv2.putText(transform_frame, f"{ind}", _bottom_left_corner_[ind], fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
             
-        cv2.imshow(transform_frame_name, transform_frame)
-        cv2.imshow(window_frame_name, frame)
+        if ShowTransformFrame:
+            cv2.imshow(transform_frame_name, transform_frame)
+        if ShowNormalFrame:
+            cv2.imshow(window_frame_name, frame)
 
         if cv2.waitKey(0) & 0xFF == 27: # ESC
             break
