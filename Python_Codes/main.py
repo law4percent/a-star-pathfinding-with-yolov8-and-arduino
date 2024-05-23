@@ -10,20 +10,22 @@ import calculate_distance as cd
 import canteen_areas as ca
 from canteen_areas import Area, _center_X_, _bottom_left_corner_
 
-Birds_Eye_View = True
-ShowOnFrame_EntireArea_Zone = True
+ShowNormalFrame = False
+ShowOnFrame_EntireArea_Zone = False
+
+ShowTransformFrame = True
 ShowOnFrame_Zones = True
-ShowOnFrame_RobotPathZones = True
 ShowOnFrame_ObstacledZones = True
+ShowOnFrame_RobotPathZones = True
 ShowOnFrame_NumOfClass = True
 ShowOnFrame_BoundingBoxAndClsID = False
 ShowOnFrame_IndexNumOfEveryArea = False
-ShowOnFrame_Binary = False
-ShowTransformFrame = True
-ShowNormalFrame = False
+ShowOnFrame_Binary = True
+
 ARDUINO = False
 DEBUG_CMD = True
 DEBUG_FRAME = True
+Birds_Eye_View = True
 MouseCallBack = False
 
 if ARDUINO:
@@ -190,7 +192,9 @@ def main():
 
     startTime = 0
     interval_reset = 10
-
+    fontFace = cv2.FONT_HERSHEY_SIMPLEX
+    fontScale = 0.5
+    textThickness = 2
     while True:
         success, frame = cap.read()
 
@@ -237,7 +241,7 @@ def main():
             continue
         
         count += 1
-        if count % 15 != 0:
+        if count % 10 != 0:
             continue
         
         frame = cv2.resize(frame, (frame_width, frame_height))
@@ -246,9 +250,6 @@ def main():
         norm_frame_Pred_result = model.predict(source=[frame], conf=0.45, save=False)
         
         if ShowOnFrame_EntireArea_Zone:
-            fontFace = cv2.FONT_HERSHEY_SIMPLEX
-            fontScale = 0.5
-            textThickness = 2
             cv2.polylines(frame, [np.array(ca.entire_area, np.int32)], True, (200, 200, 0), 2) # Entire Area
 
         PX_convertToFloat_BirdV = pd.DataFrame(bird_eye_Pred_result[0].boxes.data).astype("float")
@@ -321,8 +322,8 @@ def main():
                         1, 1, 1, 1, 1, 1, 1, 1, # 0
                         1, 1, 0, 1, 1, 0, 1, 1, # 1
                         1, 1, 1, 1, 1, 1, 1, 1, # 2
-                        1, 1, 1, 1, 1, 1, 1, 1, # 3
-                        1, 1, 0, 1, 1, 0, 1, 1, # 4
+                        1, 1, 0, 1, 1, 0, 1, 1, # 3
+                        1, 1, 1, 1, 1, 1, 1, 1, # 4
                         1, 1, 1, 1, 1, 1, 1, 1, # 5
                     ]
         robot_default_location = [0, 5]
@@ -514,27 +515,27 @@ def main():
                 if ShowOnFrame_IndexNumOfEveryArea:
                     cv2.putText(frame, f"{ind}", _bottom_left_corner_[ind], fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
 
-            if ShowOnFrame_EntireArea_Zone:
-                if target_area != None:
-                    directional_format = cd.convertPathToDirection(shortest_path_tuple_format, row_max=6, col_max=8)
+            # if ShowOnFrame_EntireArea_Zone:
+            if target_area != None:
+                directional_format = cd.convertPathToDirection(shortest_path_tuple_format, row_max=6, col_max=8)
 
-                    cv2.putText(transform_frame, f"Target Area: {target_area}", (50, 35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
-                    cv2.putText(transform_frame, f"Robot Location: {rob_loc}", (50, 35+35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
-                    cv2.putText(transform_frame, f"Pathway: {shortest_path_tuple_format}", (50, 720-(35+35)), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
-                    cv2.putText(transform_frame, f"Direction: {directional_format}", (50, 720-35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
-                else:
-                    cv2.putText(transform_frame, f"Target Area: None", (50, 35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
-                    cv2.putText(transform_frame, f"Robot Location: {rob_loc}", (50, 35+35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
-                    cv2.putText(transform_frame, f"Pathway: None", (50, 720-(35+35)), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
-                    cv2.putText(transform_frame, f"Direction: None", (50, 720-35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
+                cv2.putText(transform_frame, f"Target Area: {target_area}", (50, 35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
+                cv2.putText(transform_frame, f"Robot Location: {rob_loc}", (50, 35+35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
+                cv2.putText(transform_frame, f"Pathway: {shortest_path_tuple_format}", (50, 720-(35+35)), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
+                cv2.putText(transform_frame, f"Direction: {directional_format}", (50, 720-35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
+            else:
+                cv2.putText(transform_frame, f"Target Area: None", (50, 35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
+                cv2.putText(transform_frame, f"Robot Location: {rob_loc}", (50, 35+35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
+                cv2.putText(transform_frame, f"Pathway: None", (50, 720-(35+35)), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
+                cv2.putText(transform_frame, f"Direction: None", (50, 720-35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
 
-                for ind in range(len(Area)):
-                    if ShowOnFrame_Binary:
-                        cv2.putText(transform_frame, f"{binary_map[ind]}", _center_X_[ind], fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
-                    if ShowOnFrame_NumOfClass:
-                        cv2.putText(transform_frame, f"Total Class: {sum_of_cls}", (1100, 35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
-                    if ShowOnFrame_IndexNumOfEveryArea:
-                        cv2.putText(transform_frame, f"{ind}", _bottom_left_corner_[ind], fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
+            for ind in range(len(Area)):
+                if ShowOnFrame_Binary:
+                    cv2.putText(transform_frame, f"{binary_map[ind]}", _center_X_[ind], fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
+                if ShowOnFrame_NumOfClass:
+                    cv2.putText(transform_frame, f"Total Class: {sum_of_cls}", (1100, 35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
+                if ShowOnFrame_IndexNumOfEveryArea:
+                    cv2.putText(transform_frame, f"{ind}", _bottom_left_corner_[ind], fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
             
         if ShowTransformFrame:
             cv2.imshow(transform_frame_name, transform_frame)
