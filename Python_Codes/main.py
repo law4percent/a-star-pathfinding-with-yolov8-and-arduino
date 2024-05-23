@@ -10,17 +10,19 @@ import calculate_distance as cd
 import canteen_areas as ca
 from canteen_areas import Area, _center_X_, _bottom_left_corner_
 
-ShowNormalFrame = False
+ShowNormalFrame = True
 ShowOnFrame_EntireArea_Zone = False
 
-ShowTransformFrame = True
-ShowOnFrame_Zones = True
-ShowOnFrame_ObstacledZones = True
-ShowOnFrame_RobotPathZones = True
+ShowTransformFrame = False
+ShowOnFrame_Binary = False
+ShowOnFrame_Zones = False
+ShowOnFrame_ObstacledZones = False
+ShowOnFrame_RobotPathZones = False
+
 ShowOnFrame_NumOfClass = True
 ShowOnFrame_BoundingBoxAndClsID = False
+
 ShowOnFrame_IndexNumOfEveryArea = False
-ShowOnFrame_Binary = True
 
 ARDUINO = False
 DEBUG_CMD = True
@@ -446,13 +448,15 @@ def main():
             print("\n======= Binary Map End =======\n")
         
         if DEBUG_FRAME:
+            for ind in range(len(Area)):
+                list_to_check = path_lists[ind]
+                sum_of_cls += len(list_to_check) if len(list_to_check) > 0 else 0
+
             if ShowOnFrame_Zones:
                 warningColor = (0, 0, 255)
                 defaultColor = (0, 0, 0)
                 for ind in range(len(Area)):
                     cv2.polylines(transform_frame, [np.array(Area[ind], np.int32)], True, defaultColor, 2)
-                    list_to_check = path_lists[ind]
-                    sum_of_cls += len(list_to_check) if len(list_to_check) > 0 else 0
 
                 if ShowOnFrame_ObstacledZones:
                     for ind in range(len(Area)):
