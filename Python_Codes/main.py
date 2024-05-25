@@ -11,18 +11,17 @@ import canteen_areas as ca
 from canteen_areas import Area, _center_X_, _bottom_left_corner_
 
 ShowNormalFrame = True
-ShowOnFrame_EntireArea_Zone = False
+ShowOnFrame_EntireArea_Zone = True
 
-ShowTransformFrame = False
+ShowTransformFrame = True
+ShowOnFrame_Zones = True
 ShowOnFrame_Binary = False
-ShowOnFrame_Zones = False
-ShowOnFrame_ObstacledZones = False
-ShowOnFrame_RobotPathZones = False
+ShowOnFrame_ObstacledZones = True
+ShowOnFrame_RobotPathZones = True
 
-ShowOnFrame_NumOfClass = True
 ShowOnFrame_BoundingBoxAndClsID = False
-
-ShowOnFrame_IndexNumOfEveryArea = False
+ShowOnFrame_NumOfClass = True
+ShowOnFrame_IndexNumOfEveryArea = True
 
 ARDUINO = False
 DEBUG_CMD = True
@@ -165,7 +164,7 @@ def main():
             cv2.namedWindow(window_frame_name)
             cv2.setMouseCallback(window_frame_name, videoFrame)
 
-    VIDEO_SOURCE_PATH = "inference/Videos/Sample_Video.mp4"
+    VIDEO_SOURCE_PATH = "inference/Videos/Sample_Video - Trim.mp4"
     yolov8_weights = "weights/OSS_Weight.pt"
     COCO_FILE_PATH = "utils/coco.names"
 
@@ -174,13 +173,11 @@ def main():
     class_list = Split_Class_List(COCO_FILE_PATH) 
 
     count = 0
-    frame_width = 1280 # 1020
-    frame_height = 720 # 500
     max_cls_on_area = 1
     frame_column = 8
     frame_row = 6
     pnts1 = np.float32([ca.entire_area[0], ca.entire_area[1], ca.entire_area[3], ca.entire_area[2]])
-    pnts2 = np.float32([[0,0], [0,frame_height], [frame_width,0], [frame_width, frame_height]])
+    pnts2 = np.float32([[0,0], [0, ca.frame_height], [ca.frame_width,0], [ca.frame_width, ca.frame_height]])
     matrix = cv2.getPerspectiveTransform(pnts1, pnts2)
     
     if not cap.isOpened():
@@ -243,11 +240,17 @@ def main():
             continue
         
         count += 1
-        if count % 10 != 0:
+        if count % 5 != 0:
             continue
         
-        frame = cv2.resize(frame, (frame_width, frame_height))
-        transform_frame = ConvertToBirdEyeView(frame, matrix, (frame_width, frame_height))
+        # bheight, bwidth = frame.shape[:2]
+        frame = cv2.resize(frame, (0, 0), fx=0.65, fy=0.65)
+        cheight, cwidth = frame.shape[:2]
+        if cheight != ca.frame_height and cwidth != ca.frame_width:
+            print("Frame size must be resize.")
+            break
+
+        transform_frame = ConvertToBirdEyeView(frame, matrix, (ca.frame_width, ca.frame_height))
         bird_eye_Pred_result = model.predict(source=[transform_frame], conf=0.45, save=False)
         norm_frame_Pred_result = model.predict(source=[frame], conf=0.45, save=False)
         
@@ -328,6 +331,7 @@ def main():
                         1, 1, 1, 1, 1, 1, 1, 1, # 4
                         1, 1, 1, 1, 1, 1, 1, 1, # 5
                     ]
+        
         robot_default_location = [0, 5]
         sum_of_cls = 0
         getRobot_index = None
@@ -382,21 +386,20 @@ def main():
                     if class_ID_name == "robot":
                         if ShowOnFrame_BoundingBoxAndClsID:
                             boundingBox_ClsID_display(Frame=transform_frame, Rec_pos=rec_pos, Color=robot_color, Text=clsID_and_Conf, Text_pos=text_pos)
-                        cv2.circle(transform_frame, cls_center_pnt, 5, robot_color, -1)
+                        cv2.circle(transform_frame, cls_center_pnt, 10, robot_color, -1)
                         getRobot_index = area_indx
                         navigateRobotCls[area_indx] = 'R'
                     else:
                         if ShowOnFrame_BoundingBoxAndClsID:
                             boundingBox_ClsID_display(Frame=transform_frame, Rec_pos=rec_pos, Color=Other_Cls_Color, Text=clsID_and_Conf, Text_pos=text_pos)
-                        cv2.circle(transform_frame, cls_center_pnt, 5, Other_Cls_Color, -1)
+                        cv2.circle(transform_frame, cls_center_pnt, 10, Other_Cls_Color, -1)
                         binary_map[area_indx] = 0 if len(list_to_append) > 0 else 1
                     # sum_of_cls += len(list_to_append)
         
         directional_format = []
         shortest_path_tuple_format = []
-        Robot_Current_Location = navigateRobotLocation(navigateRobotCls, frame_row, frame_column, 'R') if getRobot_index != None else None
-        directional_format = []
         target_area = None
+        Robot_Current_Location = None
 
         currentTime = time.time()
         if startTime != 0 and (currentTime - startTime) >= interval_reset: # 10 secs
@@ -406,31 +409,40 @@ def main():
             Table_D_Flag = False
             startTime = 0
 
-        if Robot_Current_Location != None:
-            if Table_A_Flag:
+        # if Robot_Current_Location != None:
+        if Table_A_Flag:
+            Robot_Current_Location = navigateRobotLocation(navigateRobotCls, frame_row, frame_column, 'R') if getRobot_index != None else None
+            if Robot_Current_Location != None:
                 TableA_listOf_areaXY = ca.TableA_nearArea
                 numberOfCls_eachArea = [len(PL_02), len(PL_23), len(PL_32), len(PL_20)]
                 target_area = getTheTargetArea(TableA_listOf_areaXY, numberOfCls_eachArea, Robot_Current_Location, max_cls_on_area, DEBUG_CMD)
 
-            elif Table_B_Flag:
+        elif Table_B_Flag:
+            Robot_Current_Location = navigateRobotLocation(navigateRobotCls, frame_row, frame_column, 'R') if getRobot_index != None else None
+            if Robot_Current_Location != None:
                 TableB_listOf_areaXY = ca.TableB_nearArea
                 numberOfCls_eachArea = [len(PL_06), len(PL_27), len(PL_36), len(PL_24)]
                 target_area = getTheTargetArea(TableB_listOf_areaXY, numberOfCls_eachArea, Robot_Current_Location, max_cls_on_area, DEBUG_CMD)
 
-            elif Table_C_Flag:
+        elif Table_C_Flag:
+            Robot_Current_Location = navigateRobotLocation(navigateRobotCls, frame_row, frame_column, 'R') if getRobot_index != None else None
+            if Robot_Current_Location != None:
                 TableC_listOf_areaXY = ca.TableC_nearArea
                 numberOfCls_eachArea = [len(PL_32), len(PL_43), len(PL_52), len(PL_40)]
                 target_area = getTheTargetArea(TableC_listOf_areaXY, numberOfCls_eachArea, Robot_Current_Location, max_cls_on_area, DEBUG_CMD)
 
-            elif Table_D_Flag:
+        elif Table_D_Flag:
+            Robot_Current_Location = navigateRobotLocation(navigateRobotCls, frame_row, frame_column, 'R') if getRobot_index != None else None
+            if Robot_Current_Location != None:
                 TableD_listOf_areaXY = ca.TableD_nearArea
                 numberOfCls_eachArea = [len(PL_36), len(PL_47), len(PL_56), len(PL_44)]
                 target_area = getTheTargetArea(TableD_listOf_areaXY, numberOfCls_eachArea, Robot_Current_Location, max_cls_on_area, DEBUG_CMD)
-        
+
         if target_area != None and Robot_Current_Location != None:
             _matrix = ConvertToMatrixOfArray(binary_map, frame_row, frame_column, False)
             shortest_path = cd.CreatePath(Robot_Current_Location, target_area, _matrix, DEBUG_CMD)
             shortest_path_tuple_format = ConvertToListOfTuple(shortest_path)
+            directional_format = cd.convertPathToDirection(shortest_path_tuple_format, row_max=6, col_max=8)
 
         if DEBUG_CMD:
             print(f"A Top: {len(PL_02)} Right: {len(PL_23)} Bottom: {len(PL_32)} Left: {len(PL_20)}")
@@ -439,6 +451,7 @@ def main():
             print(f"D Top: {len(PL_36)} Right: {len(PL_47)} Bottom: {len(PL_56)} Left: {len(PL_44)}\n")
 
             print(f"target area: {target_area}\n")
+            print(f"directions : {directional_format}\n")
 
             print("======= Binary Map =======\n")
             for i in range(len(Area)):
@@ -451,95 +464,88 @@ def main():
             for ind in range(len(Area)):
                 list_to_check = path_lists[ind]
                 sum_of_cls += len(list_to_check) if len(list_to_check) > 0 else 0
-
-            if ShowOnFrame_Zones:
-                warningColor = (0, 0, 255)
-                defaultColor = (0, 0, 0)
-                for ind in range(len(Area)):
-                    cv2.polylines(transform_frame, [np.array(Area[ind], np.int32)], True, defaultColor, 2)
-
-                if ShowOnFrame_ObstacledZones:
+            if ShowTransformFrame:
+                if ShowOnFrame_Zones:
+                    warningColor = (0, 0, 255)
+                    defaultColor = (0, 0, 0)
                     for ind in range(len(Area)):
-                        if not binary_map[ind]:
-                            cv2.polylines(transform_frame, [np.array(Area[ind], np.int32)], True, warningColor, 2)
+                        cv2.polylines(transform_frame, [np.array(Area[ind], np.int32)], True, defaultColor, 2)
 
-                if ShowOnFrame_RobotPathZones and target_area != None and Robot_Current_Location != None:
-                    arrayOfNumb = []
-                    for indexOf_1Darray in range(len(Area)):
-                        arrayOfNumb.append(indexOf_1Darray)
-                    matrixOfNumb = ConvertToMatrixOfArray(arrayOfNumb, frame_row, frame_column, False)
-                    listOfPath_Index = []
-                    # Convert from X and Y to ROWs and COLs
-                    for coord in shortest_path_tuple_format:
-                        ROW = coord[1]
-                        COL = coord[0]
-                        listOfPath_Index.append(matrixOfNumb[ROW][COL])
-                    row_sArea = Robot_Current_Location[1]
-                    col_sArea = Robot_Current_Location[0]
-                    row_eArea = target_area[1]
-                    col_eArea = target_area[0]
+                    if ShowOnFrame_ObstacledZones:
+                        for ind in range(len(Area)):
+                            if not binary_map[ind]:
+                                cv2.polylines(transform_frame, [np.array(Area[ind], np.int32)], True, warningColor, 2)
 
-                    Start_Area = matrixOfNumb[row_sArea][col_sArea]
-                    End_Area = matrixOfNumb[row_eArea][col_eArea]
-                    length_ = len(listOfPath_Index)
-                    listOfPath_Index.sort()
-                    start_color = (255, 0, 0)
-                    end_color = (255, 220, 0)
-                    path_color = (0, 255, 0)
-                    colors = [start_color, end_color, path_color]
+                    if ShowOnFrame_RobotPathZones and target_area != None and Robot_Current_Location != None:
+                        arrayOfNumb = []
+                        for indexOf_1Darray in range(len(Area)):
+                            arrayOfNumb.append(indexOf_1Darray)
+                        matrixOfNumb = ConvertToMatrixOfArray(arrayOfNumb, frame_row, frame_column, False)
+                        listOfPath_Index = []
+                        # Convert from X and Y to ROWs and COLs
+                        for coord in shortest_path_tuple_format:
+                            ROW = coord[1]
+                            COL = coord[0]
+                            listOfPath_Index.append(matrixOfNumb[ROW][COL])
+                        row_sArea = Robot_Current_Location[1]
+                        col_sArea = Robot_Current_Location[0]
+                        row_eArea = target_area[1]
+                        col_eArea = target_area[0]
 
-                    increment_index = 0
-                    for ind in range(len(Area)):
-                        if increment_index != length_:
-                            if listOfPath_Index[increment_index] == ind:
-                                cv2.polylines(transform_frame, [np.array(Area[ind], np.int32)], True, colors[2], thickness=3)
-                                increment_index += 1
-                    cv2.polylines(transform_frame, [np.array(Area[Start_Area], np.int32)], True, colors[0], thickness=5)
-                    cv2.polylines(transform_frame, [np.array(Area[End_Area], np.int32)], True, colors[1], thickness=5)
-        
+                        Start_Area = matrixOfNumb[row_sArea][col_sArea]
+                        End_Area = matrixOfNumb[row_eArea][col_eArea]
+                        length_ = len(listOfPath_Index)
+                        listOfPath_Index.sort()
+                        start_color = (255, 0, 0)
+                        end_color = (255, 220, 0)
+                        path_color = (0, 255, 0)
+                        colors = [start_color, end_color, path_color]
+
+                        increment_index = 0
+                        for ind in range(len(Area)):
+                            if increment_index != length_:
+                                if listOfPath_Index[increment_index] == ind:
+                                    cv2.polylines(transform_frame, [np.array(Area[ind], np.int32)], True, colors[2], thickness=3)
+                                    increment_index += 1
+                        cv2.polylines(transform_frame, [np.array(Area[Start_Area], np.int32)], True, colors[0], thickness=5)
+                        cv2.polylines(transform_frame, [np.array(Area[End_Area], np.int32)], True, colors[1], thickness=5)
+            
             rob_loc = Robot_Current_Location if Robot_Current_Location != None else "No robot found!"
-            if target_area != None:
-                directional_format = cd.convertPathToDirection(shortest_path_tuple_format, row_max=6, col_max=8, display=False)
+            if ShowNormalFrame:
+                if target_area != None:
+                    cv2.putText(frame, f"Target Area: {target_area}", (50, 35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
+                    cv2.putText(frame, f"Robot Location: {rob_loc}", (50, 35+35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
+                    cv2.putText(frame, f"Pathway: {shortest_path_tuple_format}", (50, 720-(35+35)), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
+                    cv2.putText(frame, f"Direction: {directional_format}", (50, 720-35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
+                else:
+                    cv2.putText(frame, f"Target Area: None", (50, 35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
+                    cv2.putText(frame, f"Robot Location: {rob_loc}", (50, 35+35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
+                    cv2.putText(frame, f"Pathway: None", (50, 720-(35+35)), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
+                    cv2.putText(frame, f"Direction: None", (50, 720-35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
 
-                cv2.putText(frame, f"Target Area: {target_area}", (50, 35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
-                cv2.putText(frame, f"Robot Location: {rob_loc}", (50, 35+35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
-                cv2.putText(frame, f"Pathway: {shortest_path_tuple_format}", (50, 720-(35+35)), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
-                cv2.putText(frame, f"Direction: {directional_format}", (50, 720-35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
-            else:
-                cv2.putText(frame, f"Target Area: None", (50, 35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
-                cv2.putText(frame, f"Robot Location: {rob_loc}", (50, 35+35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
-                cv2.putText(frame, f"Pathway: None", (50, 720-(35+35)), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
-                cv2.putText(frame, f"Direction: None", (50, 720-35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
-
-            for ind in range(len(Area)):
-                if ShowOnFrame_Binary:
-                    cv2.putText(frame, f"{binary_map[ind]}", _center_X_[ind], fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
                 if ShowOnFrame_NumOfClass:
                     cv2.putText(frame, f"Total Class: {sum_of_cls}", (1100, 35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
-                if ShowOnFrame_IndexNumOfEveryArea:
-                    cv2.putText(frame, f"{ind}", _bottom_left_corner_[ind], fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
+                    
+            if ShowTransformFrame:
+                if target_area != None:
+                    cv2.putText(transform_frame, f"Target Area: {target_area}", (50, 35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
+                    cv2.putText(transform_frame, f"Robot Location: {rob_loc}", (50, 35+35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
+                    cv2.putText(transform_frame, f"Pathway: {shortest_path_tuple_format}", (50, 720-(35+35)), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
+                    cv2.putText(transform_frame, f"Direction: {directional_format}", (50, 720-35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
+                else:
+                    cv2.putText(transform_frame, f"Target Area: None", (50, 35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
+                    cv2.putText(transform_frame, f"Robot Location: {rob_loc}", (50, 35+35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
+                    cv2.putText(transform_frame, f"Pathway: None", (50, 720-(35+35)), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
+                    cv2.putText(transform_frame, f"Direction: None", (50, 720-35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
 
-            # if ShowOnFrame_EntireArea_Zone:
-            if target_area != None:
-                directional_format = cd.convertPathToDirection(shortest_path_tuple_format, row_max=6, col_max=8)
-
-                cv2.putText(transform_frame, f"Target Area: {target_area}", (50, 35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
-                cv2.putText(transform_frame, f"Robot Location: {rob_loc}", (50, 35+35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
-                cv2.putText(transform_frame, f"Pathway: {shortest_path_tuple_format}", (50, 720-(35+35)), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
-                cv2.putText(transform_frame, f"Direction: {directional_format}", (50, 720-35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
-            else:
-                cv2.putText(transform_frame, f"Target Area: None", (50, 35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
-                cv2.putText(transform_frame, f"Robot Location: {rob_loc}", (50, 35+35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
-                cv2.putText(transform_frame, f"Pathway: None", (50, 720-(35+35)), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
-                cv2.putText(transform_frame, f"Direction: None", (50, 720-35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
-
-            for ind in range(len(Area)):
-                if ShowOnFrame_Binary:
-                    cv2.putText(transform_frame, f"{binary_map[ind]}", _center_X_[ind], fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
                 if ShowOnFrame_NumOfClass:
                     cv2.putText(transform_frame, f"Total Class: {sum_of_cls}", (1100, 35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
-                if ShowOnFrame_IndexNumOfEveryArea:
-                    cv2.putText(transform_frame, f"{ind}", _bottom_left_corner_[ind], fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
+                
+                for ind in range(len(Area)):
+                    if ShowOnFrame_Binary:
+                        cv2.putText(transform_frame, f"{binary_map[ind]}", _center_X_[ind], fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
+                    if ShowOnFrame_IndexNumOfEveryArea:
+                        cv2.putText(transform_frame, f"{ind}", _bottom_left_corner_[ind], fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
             
         if ShowTransformFrame:
             cv2.imshow(transform_frame_name, transform_frame)

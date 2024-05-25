@@ -1,7 +1,10 @@
-entire_area = [(280, 164), (110, 715), (1230, 715), (1069, 157)] 
+frame_width = 1248
+frame_height = 702
 
-_x = 160
-_y = 120
+entire_area = [(250, 214), (110, frame_height-5), (frame_width-50, frame_height-5), (1069, 207)] 
+
+_x = frame_width // 8
+_y = frame_height // 6
         #   A             B              c             D
 xy_00 = [(_x*0, _y*0), (_x*0, _y*1), (_x*1, _y*1), (_x*1, _y*0)]
 xy_01 = [(_x*1, _y*0), (_x*1, _y*1), (_x*2, _y*1), (_x*2, _y*0)]
