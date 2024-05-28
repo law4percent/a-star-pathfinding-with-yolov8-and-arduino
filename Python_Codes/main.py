@@ -10,7 +10,7 @@ import calculate_distance as cd
 import canteen_areas as ca
 from canteen_areas import Area, _center_X_, _bottom_left_corner_
 
-ShowNormalFrame = True
+ShowNormalFrame = False
 ShowOnFrame_EntireArea_Zone = True
 
 ShowTransformFrame = True
@@ -24,21 +24,20 @@ ShowOnFrame_NumOfClass = True
 ShowOnFrame_IndexNumOfEveryArea = True
 
 ARDUINO = False
-DEBUG_CMD = True
+DEBUG_CMD = False
 DEBUG_FRAME = True
-Birds_Eye_View = True
+Birds_Eye_View = False
 MouseCallBack = False
 
-if ARDUINO:
-    serial_port = 'COM3'
-    baud_rate = 9600
-    global arduino
-    arduino = serial.Serial(serial_port, baud_rate)
+# if ARDUINO:
+# serial_port = 'COM20'
+# baud_rate = 9600
+# arduino = serial.Serial(serial_port, baud_rate)
 
 def sendCommandToArduino(command):
-    global arduino
+    command += '\n'  # Ensure the command ends with a newline character
     arduino.write(command.encode('utf-8'))
-    print("Sent command to Arduino:", command)
+    print("Sent command to Arduino:", command.strip())
 
 def decodeReceivedDataCommand():
     global arduino
@@ -95,7 +94,7 @@ def ConvertToListOfTuple(path):
     return path_list
 
 def ConvertToBirdEyeView(frame, matrix, HW):
-    return cv2.warpPerspective(frame, matrix, HW)
+    return cv2.warpPerspective(frame, matrix, HW, cv2.INTER_LINEAR)
 
 def getTheTargetArea(targetTable_listOfnear_areaXY:list, numberOfCls_eachArea:list, startArea:tuple, max_cls, display_data=True) -> tuple:
     get_remain_areas = []
@@ -164,7 +163,7 @@ def main():
             cv2.namedWindow(window_frame_name)
             cv2.setMouseCallback(window_frame_name, videoFrame)
 
-    VIDEO_SOURCE_PATH = "inference/Videos/Sample_Video - Trim.mp4"
+    VIDEO_SOURCE_PATH = "inference/Videos/V3.mp4"
     yolov8_weights = "weights/OSS_Weight.pt"
     COCO_FILE_PATH = "utils/coco.names"
 
@@ -174,8 +173,8 @@ def main():
 
     count = 0
     max_cls_on_area = 1
-    frame_column = 8
-    frame_row = 6
+    frame_column = ca.x_COLs
+    frame_row = ca.y_ROWs
     pnts1 = np.float32([ca.entire_area[0], ca.entire_area[1], ca.entire_area[3], ca.entire_area[2]])
     pnts2 = np.float32([[0,0], [0, ca.frame_height], [ca.frame_width,0], [ca.frame_width, ca.frame_height]])
     matrix = cv2.getPerspectiveTransform(pnts1, pnts2)
@@ -186,66 +185,68 @@ def main():
 
     Table_A_Flag = False
     Table_B_Flag = False
-    Table_C_Flag = False
-    Table_D_Flag = True
+    Table_C_Flag = True
+    Table_D_Flag = False
 
     startTime = 0
-    interval_reset = 10
+    interval_reset = 3
     fontFace = cv2.FONT_HERSHEY_SIMPLEX
     fontScale = 0.5
     textThickness = 2
+    
+
     while True:
         success, frame = cap.read()
 
         if ARDUINO:
             if arduino.in_waiting > 0:
                 requestNameandCommand = decodeReceivedDataCommand() # to receive A1 || A0
-                if requestNameandCommand == "CP":
-                    pass
-                else:
-                    if requestNameandCommand[0] == ca.Table_Names[0]:
-                        if requestNameandCommand[1] == "1":
-                            Table_A_Flag = True
-                            startTime = time.time()
-                        else:
-                            Table_A_Flag = False
-                            startTime = 0
-                    
-                    elif requestNameandCommand[0] == ca.Table_Names[1]:
-                        if requestNameandCommand[1] == "1":
-                            Table_B_Flag = True
-                            startTime = time.time()
-                        else:
-                            Table_B_Flag = False
-                            startTime = 0
 
-                    elif requestNameandCommand[0] == ca.Table_Names[2]:
-                        if requestNameandCommand[1] == "1":
-                            Table_C_Flag = True
-                            startTime = time.time()
-                        else:
-                            Table_C_Flag = False
-                            startTime = 0
+                if requestNameandCommand[0] == ca.Table_Names[0] or requestNameandCommand[0] == 'C':
+                    if requestNameandCommand[1] == "1":
+                        Table_A_Flag = True
+                        startTime = time.time()
+                    else:
+                        Table_A_Flag = False
+                        startTime = 0
+                
+                elif requestNameandCommand[0] == ca.Table_Names[1] or requestNameandCommand[1] == 'C':
+                    if requestNameandCommand[1] == "1":
+                        Table_B_Flag = True
+                        startTime = time.time()
+                    else:
+                        Table_B_Flag = False
+                        startTime = 0
 
-                    elif requestNameandCommand[0] == ca.Table_Names[3]:
+                elif requestNameandCommand[0] == ca.Table_Names[2] or requestNameandCommand[2] == 'C':
+                    if requestNameandCommand[1] == "1":
+                        Table_C_Flag = True
+                        startTime = time.time()
+                    else:
+                        Table_C_Flag = False
+                        startTime = 0
+
+                elif requestNameandCommand[0] == ca.Table_Names[3] or requestNameandCommand[3] == 'C':
                         if requestNameandCommand[1] == "1":
                             Table_D_Flag = True
                             startTime = time.time()
                         else:
                             Table_D_Flag = False
                             startTime = 0
-
+            
         if not success:
             cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
             continue
         
         count += 1
-        if count % 5 != 0:
+        if count % 15 != 0:
             continue
         
         # bheight, bwidth = frame.shape[:2]
-        frame = cv2.resize(frame, (0, 0), fx=0.65, fy=0.65)
+        frame = cv2.resize(frame, (0, 0), fx=0.68, fy=0.68)
         cheight, cwidth = frame.shape[:2]
+        # print(cheight)
+        # print(cwidth)
         if cheight != ca.frame_height and cwidth != ca.frame_width:
             print("Frame size must be resize.")
             break
@@ -260,6 +261,7 @@ def main():
         PX_convertToFloat_BirdV = pd.DataFrame(bird_eye_Pred_result[0].boxes.data).astype("float")
         PX_convertToNumpy_NormV = norm_frame_Pred_result[0].numpy()
 
+        # Path Location RowCol
         PL_00 = []
         PL_01 = []
         PL_02 = []
@@ -267,7 +269,7 @@ def main():
         PL_04 = []
         PL_05 = []
         PL_06 = []
-        PL_07 = []
+        # PL_07 = []
 
         PL_10 = []
         PL_11 = []
@@ -276,7 +278,7 @@ def main():
         PL_14 = []
         PL_15 = []
         PL_16 = []
-        PL_17 = []
+        # PL_17 = []
 
         PL_20 = []
         PL_21 = []
@@ -285,7 +287,7 @@ def main():
         PL_24 = []
         PL_25 = []
         PL_26 = []
-        PL_27 = []
+        # PL_27 = []
 
         PL_30 = []
         PL_31 = []
@@ -294,7 +296,7 @@ def main():
         PL_34 = []
         PL_35 = []
         PL_36 = []
-        PL_37 = []
+        # PL_37 = []
 
         PL_40 = []
         PL_41 = []
@@ -303,36 +305,36 @@ def main():
         PL_44 = []
         PL_45 = []
         PL_46 = []
-        PL_47 = []
+        # PL_47 = []
 
-        PL_50 = []
-        PL_51 = []
-        PL_52 = []
-        PL_53 = []
-        PL_54 = []
-        PL_55 = []
-        PL_56 = []
-        PL_57 = []
+        # PL_50 = []
+        # PL_51 = []
+        # PL_52 = []
+        # PL_53 = []
+        # PL_54 = []
+        # PL_55 = []
+        # PL_56 = []
+        # PL_57 = []
 
         path_lists = (
-                        PL_00, PL_01, PL_02, PL_03, PL_04, PL_05, PL_06, PL_07,
-                        PL_10, PL_11, PL_12, PL_13, PL_14, PL_15, PL_16, PL_17,
-                        PL_20, PL_21, PL_22, PL_23, PL_24, PL_25, PL_26, PL_27,
-                        PL_30, PL_31, PL_32, PL_33, PL_34, PL_35, PL_36, PL_37,
-                        PL_40, PL_41, PL_42, PL_43, PL_44, PL_45, PL_46, PL_47,
-                        PL_50, PL_51, PL_52, PL_53, PL_54, PL_55, PL_56, PL_57,
+                        PL_00, PL_01, PL_02, PL_03, PL_04, PL_05, PL_06, #PL_07,
+                        PL_10, PL_11, PL_12, PL_13, PL_14, PL_15, PL_16, #PL_17,
+                        PL_20, PL_21, PL_22, PL_23, PL_24, PL_25, PL_26, #PL_27,
+                        PL_30, PL_31, PL_32, PL_33, PL_34, PL_35, PL_36, #PL_37,
+                        PL_40, PL_41, PL_42, PL_43, PL_44, PL_45, PL_46, #PL_47,
+                        # PL_50, PL_51, PL_52, PL_53, PL_54, PL_55, PL_56, #PL_57,
                     )
-        navigateRobotCls = [0] * len(Area)
+        navigateRobotCls = [0] * ca.totalAreas
         binary_map = [# 0  1  2  3  4  5  6  7
-                        1, 1, 1, 1, 1, 1, 1, 1, # 0
-                        1, 1, 0, 1, 1, 0, 1, 1, # 1
-                        1, 1, 1, 1, 1, 1, 1, 1, # 2
-                        1, 1, 0, 1, 1, 0, 1, 1, # 3
-                        1, 1, 1, 1, 1, 1, 1, 1, # 4
-                        1, 1, 1, 1, 1, 1, 1, 1, # 5
+                        1, 1, 1, 1, 1, 1, 1, #1, # 0
+                        1, 1, 1, 1, 1, 0, 0, #1, # 1
+                        1, 1, 1, 1, 1, 1, 1, #1, # 2
+                        1, 1, 1, 1, 1, 0, 0, #1, # 3
+                        1, 1, 1, 1, 1, 0, 0, #1, # 4
+                        # 1, 1, 1, 1, 1, 1, 1, #1, # 5
                     ]
         
-        robot_default_location = [0, 5]
+        robot_default_location = [0, 4]
         sum_of_cls = 0
         getRobot_index = None
 
@@ -376,7 +378,7 @@ def main():
             text_pos = (x1, y1)
             clsID_and_Conf = f"{class_ID_name} {confidence}%"
 
-            for area_indx in range(len(Area)):
+            for area_indx in range(ca.totalAreas):
                 if PolygonTest(Area=Area[area_indx], XY=cls_center_pnt) >= 0:
                     Other_Cls_Color = (220, 150, 160)
                     robot_color = (200, 55, 10)
@@ -401,6 +403,60 @@ def main():
         target_area = None
         Robot_Current_Location = None
 
+        table_data = {
+                    # NOTE: The Near Areas of a table must be the same sequence 
+                    'TableA': {
+                        'nearArea': [(2, 0), (3, 2), (2, 3), (0, 2)],
+                        'lengths': [len(PL_02), len(PL_23), len(PL_32), len(PL_20)]
+                    },
+                    'TableB': {
+                        'nearArea': [(5, 0), (6, 2), (4, 1), (4, 2)],
+                        'lengths': [len(PL_05), len(PL_26), len(PL_14), len(PL_24)]
+                    },
+                    'TableC': {
+                        'nearArea': [(0, 2), (1, 2), (2, 3), (2, 4)],
+                        'lengths': [len(PL_20), len(PL_21), len(PL_32), len(PL_42)]
+                    },
+                    'TableD': {
+                        'nearArea': [(5, 2), (6, 2), (4, 3), (4, 4)],
+                        'lengths': [len(PL_25), len(PL_26), len(PL_34), len(PL_44)]
+                    }
+                }
+
+        if Table_A_Flag:
+            Robot_Current_Location = navigateRobotLocation(navigateRobotCls, frame_row, frame_column, 'R') if getRobot_index != None else None
+            if Robot_Current_Location != None:
+                TableA_listOf_areaXY = table_data['TableA']['nearArea']
+                numberOfCls_eachAreaA = table_data['TableA']['lengths']
+                target_area = getTheTargetArea(TableA_listOf_areaXY, numberOfCls_eachAreaA, Robot_Current_Location, max_cls_on_area, DEBUG_CMD)
+
+        elif Table_B_Flag:
+            Robot_Current_Location = navigateRobotLocation(navigateRobotCls, frame_row, frame_column, 'R') if getRobot_index != None else None
+            if Robot_Current_Location != None:
+                TableB_listOf_areaXY = table_data['TableB']['nearArea']
+                numberOfCls_eachAreaB = table_data['TableB']['lengths']
+                target_area = getTheTargetArea(TableB_listOf_areaXY, numberOfCls_eachAreaB, Robot_Current_Location, max_cls_on_area, DEBUG_CMD)
+
+        elif Table_C_Flag:
+            Robot_Current_Location = navigateRobotLocation(navigateRobotCls, frame_row, frame_column, 'R') if getRobot_index != None else None
+            if Robot_Current_Location != None:
+                TableC_listOf_areaXY = table_data['TableC']['nearArea']
+                numberOfCls_eachAreaC = table_data['TableC']['lengths']
+                target_area = getTheTargetArea(TableC_listOf_areaXY, numberOfCls_eachAreaC, Robot_Current_Location, max_cls_on_area, DEBUG_CMD)
+
+        elif Table_D_Flag:
+            Robot_Current_Location = navigateRobotLocation(navigateRobotCls, frame_row, frame_column, 'R') if getRobot_index != None else None
+            if Robot_Current_Location != None:
+                TableD_listOf_areaXY = table_data['TableD']['nearArea']
+                numberOfCls_eachAreaD = table_data['TableD']['lengths']
+                target_area = getTheTargetArea(TableD_listOf_areaXY, numberOfCls_eachAreaD, Robot_Current_Location, max_cls_on_area, DEBUG_CMD)
+
+        if target_area != None and Robot_Current_Location != None:
+            _matrix = ConvertToMatrixOfArray(binary_map, frame_row, frame_column, False)
+            shortest_path = cd.CreatePath(Robot_Current_Location, target_area, _matrix, DEBUG_CMD)
+            shortest_path_tuple_format = ConvertToListOfTuple(shortest_path)
+            directional_format = cd.convertPathToDirection(shortest_path_tuple_format, row_max=frame_row, col_max=frame_column)
+
         currentTime = time.time()
         if startTime != 0 and (currentTime - startTime) >= interval_reset: # 10 secs
             Table_A_Flag = False
@@ -408,41 +464,7 @@ def main():
             Table_C_Flag = False
             Table_D_Flag = False
             startTime = 0
-
-        # if Robot_Current_Location != None:
-        if Table_A_Flag:
-            Robot_Current_Location = navigateRobotLocation(navigateRobotCls, frame_row, frame_column, 'R') if getRobot_index != None else None
-            if Robot_Current_Location != None:
-                TableA_listOf_areaXY = ca.TableA_nearArea
-                numberOfCls_eachArea = [len(PL_02), len(PL_23), len(PL_32), len(PL_20)]
-                target_area = getTheTargetArea(TableA_listOf_areaXY, numberOfCls_eachArea, Robot_Current_Location, max_cls_on_area, DEBUG_CMD)
-
-        elif Table_B_Flag:
-            Robot_Current_Location = navigateRobotLocation(navigateRobotCls, frame_row, frame_column, 'R') if getRobot_index != None else None
-            if Robot_Current_Location != None:
-                TableB_listOf_areaXY = ca.TableB_nearArea
-                numberOfCls_eachArea = [len(PL_06), len(PL_27), len(PL_36), len(PL_24)]
-                target_area = getTheTargetArea(TableB_listOf_areaXY, numberOfCls_eachArea, Robot_Current_Location, max_cls_on_area, DEBUG_CMD)
-
-        elif Table_C_Flag:
-            Robot_Current_Location = navigateRobotLocation(navigateRobotCls, frame_row, frame_column, 'R') if getRobot_index != None else None
-            if Robot_Current_Location != None:
-                TableC_listOf_areaXY = ca.TableC_nearArea
-                numberOfCls_eachArea = [len(PL_32), len(PL_43), len(PL_52), len(PL_40)]
-                target_area = getTheTargetArea(TableC_listOf_areaXY, numberOfCls_eachArea, Robot_Current_Location, max_cls_on_area, DEBUG_CMD)
-
-        elif Table_D_Flag:
-            Robot_Current_Location = navigateRobotLocation(navigateRobotCls, frame_row, frame_column, 'R') if getRobot_index != None else None
-            if Robot_Current_Location != None:
-                TableD_listOf_areaXY = ca.TableD_nearArea
-                numberOfCls_eachArea = [len(PL_36), len(PL_47), len(PL_56), len(PL_44)]
-                target_area = getTheTargetArea(TableD_listOf_areaXY, numberOfCls_eachArea, Robot_Current_Location, max_cls_on_area, DEBUG_CMD)
-
-        if target_area != None and Robot_Current_Location != None:
-            _matrix = ConvertToMatrixOfArray(binary_map, frame_row, frame_column, False)
-            shortest_path = cd.CreatePath(Robot_Current_Location, target_area, _matrix, DEBUG_CMD)
-            shortest_path_tuple_format = ConvertToListOfTuple(shortest_path)
-            directional_format = cd.convertPathToDirection(shortest_path_tuple_format, row_max=6, col_max=8)
+            sendCommandToArduino(directional_format)
 
         if DEBUG_CMD:
             print(f"A Top: {len(PL_02)} Right: {len(PL_23)} Bottom: {len(PL_32)} Left: {len(PL_20)}")
@@ -461,14 +483,14 @@ def main():
             print("\n======= Binary Map End =======\n")
         
         if DEBUG_FRAME:
-            for ind in range(len(Area)):
+            for ind in range(ca.totalAreas):
                 list_to_check = path_lists[ind]
                 sum_of_cls += len(list_to_check) if len(list_to_check) > 0 else 0
             if ShowTransformFrame:
                 if ShowOnFrame_Zones:
                     warningColor = (0, 0, 255)
                     defaultColor = (0, 0, 0)
-                    for ind in range(len(Area)):
+                    for ind in range(ca.totalAreas):
                         cv2.polylines(transform_frame, [np.array(Area[ind], np.int32)], True, defaultColor, 2)
 
                     if ShowOnFrame_ObstacledZones:
@@ -478,7 +500,7 @@ def main():
 
                     if ShowOnFrame_RobotPathZones and target_area != None and Robot_Current_Location != None:
                         arrayOfNumb = []
-                        for indexOf_1Darray in range(len(Area)):
+                        for indexOf_1Darray in range(ca.totalAreas):
                             arrayOfNumb.append(indexOf_1Darray)
                         matrixOfNumb = ConvertToMatrixOfArray(arrayOfNumb, frame_row, frame_column, False)
                         listOfPath_Index = []
@@ -502,7 +524,7 @@ def main():
                         colors = [start_color, end_color, path_color]
 
                         increment_index = 0
-                        for ind in range(len(Area)):
+                        for ind in range(ca.totalAreas):
                             if increment_index != length_:
                                 if listOfPath_Index[increment_index] == ind:
                                     cv2.polylines(transform_frame, [np.array(Area[ind], np.int32)], True, colors[2], thickness=3)
@@ -541,11 +563,11 @@ def main():
                 if ShowOnFrame_NumOfClass:
                     cv2.putText(transform_frame, f"Total Class: {sum_of_cls}", (1100, 35), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
                 
-                for ind in range(len(Area)):
+                for ind in range(ca.totalAreas):
                     if ShowOnFrame_Binary:
-                        cv2.putText(transform_frame, f"{binary_map[ind]}", _center_X_[ind], fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
+                        cv2.putText(transform_frame, f"{binary_map[ind]}", (_center_X_[ind][0] + 5, _center_X_[ind][1] - 5 ), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
                     if ShowOnFrame_IndexNumOfEveryArea:
-                        cv2.putText(transform_frame, f"{ind}", _bottom_left_corner_[ind], fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
+                        cv2.putText(transform_frame, f"{ind}", (_bottom_left_corner_[ind][0] + 5, _bottom_left_corner_[ind][1] - 5), fontFace=fontFace, fontScale=fontScale, color=(255, 255, 255), thickness=textThickness)
             
         if ShowTransformFrame:
             cv2.imshow(transform_frame_name, transform_frame)

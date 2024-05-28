@@ -8,7 +8,7 @@ def calculateDistance(pointA: tuple, pointB: tuple):
     x2, y2 = pointB
 
     squared_diff_x = (x2 - x1) ** 2
-    squared_diff_y = (y2 - y1) ** 2
+    squared_diff_y = ((-y2) - (-y1)) ** 2
 
     distance = math.sqrt(squared_diff_x + squared_diff_y)
     return distance
@@ -59,7 +59,7 @@ def convertPathToDirection(path, row_max, col_max, display=True) -> list:
 
         if current_y - 1 >= 0 and not done:
             if next_path == (current_x, current_y - 1):
-                direction_list.append("T")
+                direction_list.append("F")
                 done = True
 
         if current_y + 1 < y_max and not done:
@@ -85,7 +85,8 @@ def convertPathToDirection(path, row_max, col_max, display=True) -> list:
 
         if current_y - 1 >= 0 and not done:
             if next_path == (current_x, current_y - 1):
-                direction_list.append("T")
+                # direction_list.append("T")
+                direction_list.append("F")
                 done = True
 
         if current_y + 1 < y_max and not done:

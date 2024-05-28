@@ -1,14 +1,22 @@
+// Slave
+#include <SoftwareSerial.h>
+
+SoftwareSerial BT(10, 11);
+
 void setup() {
-  Serial.begin(9600);  // Set the baud rate to match the Python script
+  BT.begin(9600);
+  pinMode(13, OUTPUT);
 }
 
 void loop() {
-  if (Serial.available() > 0) {
-    // Read the incoming message
-    String message = Serial.readStringUntil('\n');
-    Serial.println("Received from Python: " + message);
+  if (BT.available() > 0) {
+    char data = char(BT.read());
 
-    // Send a response back to Python
-    Serial.println("Hello from Arduino!");
+    Serial.println(data);
+    if (data == '1') {
+      digitalWrite(13, 1);
+    } else if (data == '0') {
+      digitalWrite(13, 0);
+    }
   }
 }

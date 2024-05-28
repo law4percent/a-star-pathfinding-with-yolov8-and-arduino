@@ -1,10 +1,15 @@
-frame_width = 1248
-frame_height = 702
+frame_width = 1306
+frame_height = 734
 
-entire_area = [(250, 214), (110, frame_height-5), (frame_width-50, frame_height-5), (1069, 207)] 
+x_COLs = 7
+y_ROWs = 5
 
-_x = frame_width // 8
-_y = frame_height // 6
+totalAreas = x_COLs * y_ROWs
+
+entire_area = [(280, 60), (200, 633), (1151, 637), (1062, 61)] 
+
+_x = frame_width // x_COLs
+_y = frame_height // y_ROWs
         #   A             B              c             D
 xy_00 = [(_x*0, _y*0), (_x*0, _y*1), (_x*1, _y*1), (_x*1, _y*0)]
 xy_01 = [(_x*1, _y*0), (_x*1, _y*1), (_x*2, _y*1), (_x*2, _y*0)]
@@ -61,12 +66,12 @@ xy_56 = [(_x*6, _y*5), (_x*6, _y*6), (_x*7, _y*6), (_x*7, _y*5)]
 xy_57 = [(_x*7, _y*5), (_x*7, _y*6), (_x*8, _y*6), (_x*8, _y*5)]
 
 Area = [
-    xy_00, xy_01, xy_02, xy_03, xy_04, xy_05, xy_06, xy_07,
-    xy_10, xy_11, xy_12, xy_13, xy_14, xy_15, xy_16, xy_17,
-    xy_20, xy_21, xy_22, xy_23, xy_24, xy_25, xy_26, xy_27,
-    xy_30, xy_31, xy_32, xy_33, xy_34, xy_35, xy_36, xy_37,
-    xy_40, xy_41, xy_42, xy_43, xy_44, xy_45, xy_46, xy_47,
-    xy_50, xy_51, xy_52, xy_53, xy_54, xy_55, xy_56, xy_57,
+    xy_00, xy_01, xy_02, xy_03, xy_04, xy_05, xy_06, #xy_07,
+    xy_10, xy_11, xy_12, xy_13, xy_14, xy_15, xy_16, #xy_17,
+    xy_20, xy_21, xy_22, xy_23, xy_24, xy_25, xy_26, #xy_27,
+    xy_30, xy_31, xy_32, xy_33, xy_34, xy_35, xy_36, #xy_37,
+    xy_40, xy_41, xy_42, xy_43, xy_44, xy_45, xy_46, #xy_47,
+    # xy_50, xy_51, xy_52, xy_53, xy_54, xy_55, xy_56, #xy_57,
 ]
 
 _center_X_ = []
@@ -82,8 +87,4 @@ for index in range(len(Area)):
     _bottom_left_corner_.append(Area[index][1])
     # _bottom_center_corner_.append((x_bottom, y_bottom))
 
-TableA_nearArea = [(2, 0), (3, 2), (2, 3), (0, 2)]
-TableB_nearArea = [(6, 0), (7, 2), (6, 3), (4, 2)]
-TableC_nearArea = [(2, 3), (3, 4), (2, 5), (0, 4)]
-TableD_nearArea = [(6, 3), (7, 4), (6, 5), (4, 4)]
 Table_Names = ["A", "B", "C", "D"]
