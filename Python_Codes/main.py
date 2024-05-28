@@ -176,7 +176,7 @@ def main():
     frame_column = ca.x_COLs
     frame_row = ca.y_ROWs
     pnts1 = np.float32([ca.entire_area[0], ca.entire_area[1], ca.entire_area[3], ca.entire_area[2]])
-    pnts2 = np.float32([[0,0], [0, ca.frame_height], [ca.frame_width,0], [ca.frame_width, ca.frame_height]])
+    pnts2 = np.float32([[0,0], [0, ca.frame_height], [ca.frame_width, 0], [ca.frame_width, ca.frame_height]])
     matrix = cv2.getPerspectiveTransform(pnts1, pnts2)
     
     if not cap.isOpened():
@@ -190,6 +190,7 @@ def main():
 
     startTime = 0
     interval_reset = 3
+    robot_default_location = [0, 4]
 
     fontFace = cv2.FONT_HERSHEY_SIMPLEX
     fontScale = 0.5
@@ -240,27 +241,47 @@ def main():
             continue
         
         count += 1
-        if count % 15 != 0:
+        if count % 3 != 0:
             continue
         
-        # bheight, bwidth = frame.shape[:2]
         frame = cv2.resize(frame, (0, 0), fx=0.68, fy=0.68)
         cheight, cwidth = frame.shape[:2]
-        # print(cheight)
-        # print(cwidth)
+        print(f"Frame size: {cheight} x {cwidth}")
         if cheight != ca.frame_height and cwidth != ca.frame_width:
             print("Frame size must be resize.")
             break
-
-        transform_frame = ConvertToBirdEyeView(frame, matrix, (ca.frame_width, ca.frame_height))
-        bird_eye_Pred_result = model.predict(source=[transform_frame], conf=0.45, save=False)
-        norm_frame_Pred_result = model.predict(source=[frame], conf=0.45, save=False)
         
         if ShowOnFrame_EntireArea_Zone:
             cv2.polylines(frame, [np.array(ca.entire_area, np.int32)], True, (200, 200, 0), 2) # Entire Area
 
+        if ShowOnFrame_BoundingBoxAndClsID:
+            norm_frame_Pred_result = model.predict(source=[frame], conf=0.45, save=False)
+            PX_convertToNumpy_NormV = norm_frame_Pred_result[0].numpy()
+
+            if len(PX_convertToNumpy_NormV) != 0:
+                Other_Cls_Color = (220, 150, 160)
+                robot_color = (200, 55, 10)
+                text_color = (255, 255, 255)
+                for i in range(len(norm_frame_Pred_result[0])):
+                    boxes = norm_frame_Pred_result[0].boxes
+                    box = boxes[i]  # returns one box
+                    clsID = box.cls.numpy()[0]
+                    conf = box.conf.numpy()[0]
+                    bb = box.xyxy.numpy()[0]
+                    cls_name = class_list[int(clsID)]
+
+                    font = cv2.FONT_HERSHEY_COMPLEX
+
+                    if cls_name == "robot":
+                        cv2.putText(frame, cls_name + " " + str(round(conf, 3)) + "%", (int(bb[0]), int(bb[1]) - 10), font, fontScale=0.5, color=text_color, thickness=2)
+                        cv2.rectangle(frame, (int(bb[0]), int(bb[1])), (int(bb[2]), int(bb[3])), robot_color, 2)
+                    else:
+                        cv2.putText(frame, cls_name + " " + str(round(conf, 3)) + "%", (int(bb[0]), int(bb[1]) - 10), font, fontScale=0.5, color=text_color, thickness=2)
+                        cv2.rectangle(frame, (int(bb[0]), int(bb[1])), (int(bb[2]), int(bb[3])), Other_Cls_Color, 2)
+
+        transform_frame = ConvertToBirdEyeView(frame, matrix, (ca.frame_width, ca.frame_height))
+        bird_eye_Pred_result = model.predict(source=[transform_frame], conf=0.45, save=False)
         PX_convertToFloat_BirdV = pd.DataFrame(bird_eye_Pred_result[0].boxes.data).astype("float")
-        PX_convertToNumpy_NormV = norm_frame_Pred_result[0].numpy()
 
         # Path Location RowCol
         PL_00 = []
@@ -334,31 +355,8 @@ def main():
                         1, 1, 1, 1, 1, 0, 0, #1, # 4
                         # 1, 1, 1, 1, 1, 1, 1, #1, # 5
                     ]
-        
-        robot_default_location = [0, 4]
         sum_of_cls = 0
         getRobot_index = None
-
-        if len(PX_convertToNumpy_NormV) != 0 and ShowOnFrame_BoundingBoxAndClsID:
-            Other_Cls_Color = (220, 150, 160)
-            robot_color = (200, 55, 10)
-            text_color = (255, 255, 255)
-            for i in range(len(norm_frame_Pred_result[0])):
-                boxes = norm_frame_Pred_result[0].boxes
-                box = boxes[i]  # returns one box
-                clsID = box.cls.numpy()[0]
-                conf = box.conf.numpy()[0]
-                bb = box.xyxy.numpy()[0]
-                cls_name = class_list[int(clsID)]
-
-                font = cv2.FONT_HERSHEY_COMPLEX
-
-                if cls_name == "robot":
-                    cv2.putText(frame, cls_name + " " + str(round(conf, 3)) + "%", (int(bb[0]), int(bb[1]) - 10), font, fontScale=0.5, color=text_color, thickness=2)
-                    cv2.rectangle(frame, (int(bb[0]), int(bb[1])), (int(bb[2]), int(bb[3])), robot_color, 2)
-                else:
-                    cv2.putText(frame, cls_name + " " + str(round(conf, 3)) + "%", (int(bb[0]), int(bb[1]) - 10), font, fontScale=0.5, color=text_color, thickness=2)
-                    cv2.rectangle(frame, (int(bb[0]), int(bb[1])), (int(bb[2]), int(bb[3])), Other_Cls_Color, 2)
         
         for index_, row in PX_convertToFloat_BirdV.iterrows():
             x1 = int(row[0])
@@ -402,8 +400,6 @@ def main():
         directional_format = []
         shortest_path_tuple_format = []
         target_area = None
-        Robot_Current_Location = None
-
         table_data = {
                     # NOTE: The Near Areas of a table must be the same sequence 
                     'TableA': {
