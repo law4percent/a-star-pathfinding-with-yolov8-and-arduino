@@ -10,7 +10,7 @@ import calculate_distance as cd
 import canteen_areas as ca
 from canteen_areas import Area, _center_X_, _bottom_left_corner_
 
-ShowNormalFrame = False
+ShowNormalFrame = True
 ShowOnFrame_EntireArea_Zone = True
 
 ShowTransformFrame = True
@@ -185,11 +185,12 @@ def main():
 
     Table_A_Flag = False
     Table_B_Flag = False
-    Table_C_Flag = True
+    Table_C_Flag = False
     Table_D_Flag = False
 
     startTime = 0
     interval_reset = 3
+
     fontFace = cv2.FONT_HERSHEY_SIMPLEX
     fontScale = 0.5
     textThickness = 2
@@ -200,7 +201,7 @@ def main():
 
         if ARDUINO:
             if arduino.in_waiting > 0:
-                requestNameandCommand = decodeReceivedDataCommand() # to receive A1 || A0
+                requestNameandCommand = decodeReceivedDataCommand() # to receive A1 || A0 || AC
 
                 if requestNameandCommand[0] == ca.Table_Names[0] or requestNameandCommand[0] == 'C':
                     if requestNameandCommand[1] == "1":
@@ -422,40 +423,31 @@ def main():
                         'lengths': [len(PL_25), len(PL_26), len(PL_34), len(PL_44)]
                     }
                 }
+        Robot_Current_Location = navigateRobotLocation(navigateRobotCls, frame_row, frame_column, 'R') if getRobot_index != None else None
 
         if Table_A_Flag:
-            Robot_Current_Location = navigateRobotLocation(navigateRobotCls, frame_row, frame_column, 'R') if getRobot_index != None else None
             if Robot_Current_Location != None:
                 TableA_listOf_areaXY = table_data['TableA']['nearArea']
                 numberOfCls_eachAreaA = table_data['TableA']['lengths']
                 target_area = getTheTargetArea(TableA_listOf_areaXY, numberOfCls_eachAreaA, Robot_Current_Location, max_cls_on_area, DEBUG_CMD)
 
         elif Table_B_Flag:
-            Robot_Current_Location = navigateRobotLocation(navigateRobotCls, frame_row, frame_column, 'R') if getRobot_index != None else None
             if Robot_Current_Location != None:
                 TableB_listOf_areaXY = table_data['TableB']['nearArea']
                 numberOfCls_eachAreaB = table_data['TableB']['lengths']
                 target_area = getTheTargetArea(TableB_listOf_areaXY, numberOfCls_eachAreaB, Robot_Current_Location, max_cls_on_area, DEBUG_CMD)
 
         elif Table_C_Flag:
-            Robot_Current_Location = navigateRobotLocation(navigateRobotCls, frame_row, frame_column, 'R') if getRobot_index != None else None
             if Robot_Current_Location != None:
                 TableC_listOf_areaXY = table_data['TableC']['nearArea']
                 numberOfCls_eachAreaC = table_data['TableC']['lengths']
                 target_area = getTheTargetArea(TableC_listOf_areaXY, numberOfCls_eachAreaC, Robot_Current_Location, max_cls_on_area, DEBUG_CMD)
 
         elif Table_D_Flag:
-            Robot_Current_Location = navigateRobotLocation(navigateRobotCls, frame_row, frame_column, 'R') if getRobot_index != None else None
             if Robot_Current_Location != None:
                 TableD_listOf_areaXY = table_data['TableD']['nearArea']
                 numberOfCls_eachAreaD = table_data['TableD']['lengths']
                 target_area = getTheTargetArea(TableD_listOf_areaXY, numberOfCls_eachAreaD, Robot_Current_Location, max_cls_on_area, DEBUG_CMD)
-
-        if target_area != None and Robot_Current_Location != None:
-            _matrix = ConvertToMatrixOfArray(binary_map, frame_row, frame_column, False)
-            shortest_path = cd.CreatePath(Robot_Current_Location, target_area, _matrix, DEBUG_CMD)
-            shortest_path_tuple_format = ConvertToListOfTuple(shortest_path)
-            directional_format = cd.convertPathToDirection(shortest_path_tuple_format, row_max=frame_row, col_max=frame_column)
 
         currentTime = time.time()
         if startTime != 0 and (currentTime - startTime) >= interval_reset: # 10 secs
@@ -464,7 +456,12 @@ def main():
             Table_C_Flag = False
             Table_D_Flag = False
             startTime = 0
-            sendCommandToArduino(directional_format)
+            if target_area != None and Robot_Current_Location != None:
+                _matrix = ConvertToMatrixOfArray(binary_map, frame_row, frame_column, False)
+                shortest_path = cd.CreatePath(Robot_Current_Location, target_area, _matrix, DEBUG_CMD)
+                shortest_path_tuple_format = ConvertToListOfTuple(shortest_path)
+                directional_format = cd.convertPathToDirection(shortest_path_tuple_format, row_max=frame_row, col_max=frame_column)
+                sendCommandToArduino(directional_format)
 
         if DEBUG_CMD:
             print(f"A Top: {len(PL_02)} Right: {len(PL_23)} Bottom: {len(PL_32)} Left: {len(PL_20)}")
