@@ -1,4 +1,5 @@
-# Python >= 3.8 and Python <= 3.11 
+# Python version used
+    Python 3.11 
 
 
 # If want to stream with your phone
