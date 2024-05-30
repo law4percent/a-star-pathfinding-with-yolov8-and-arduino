@@ -24,7 +24,12 @@ while True:
     sendCommandToArduino(command)
     time.sleep(1)
 
-    if arduino.in_waiting > 0:
-        received_command = decodeReceivedDataCommand()
+    # if arduino.in_waiting > 0:
+    #     received_command = decodeReceivedDataCommand()
+
+    #     if received_command == '1':
+    #         print("LED ON")
+    #     elif received_command == '0':
+    #         print("LED OFF")
 
 arduino.close()

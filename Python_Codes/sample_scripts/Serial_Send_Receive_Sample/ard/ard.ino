@@ -11,12 +11,15 @@ void setup() {
 void loop() {
   if (BT.available() > 0) {
     char data = char(BT.read());
-
-    Serial.println(data);
     if (data == '1') {
       digitalWrite(13, 1);
     } else if (data == '0') {
       digitalWrite(13, 0);
     }
   }
+
+  Serial.println('1');
+  delay(1000);
+  Serial.println('0');
+  delay(1000);
 }

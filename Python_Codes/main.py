@@ -395,7 +395,6 @@ def main():
                             boundingBox_ClsID_display(Frame=transform_frame, Rec_pos=rec_pos, Color=Other_Cls_Color, Text=clsID_and_Conf, Text_pos=text_pos)
                         cv2.circle(transform_frame, cls_center_pnt, 10, Other_Cls_Color, -1)
                         binary_map[area_indx] = 0 if len(list_to_append) > 0 else 1
-                    # sum_of_cls += len(list_to_append)
         
         directional_format = []
         shortest_path_tuple_format = []
