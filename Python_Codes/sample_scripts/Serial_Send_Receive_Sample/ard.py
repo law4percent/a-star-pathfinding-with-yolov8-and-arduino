@@ -9,7 +9,7 @@ arduino = serial.Serial(serial_port, baud_rate)
 print("Serial connection established.")
 
 def sendCommandToArduino(command):
-    command += '\n'  # Ensure the command ends with a newline character
+    # command += '\n'  # Ensure the command ends with a newline character
     arduino.write(command.encode('utf-8'))
     print("Sent command to Arduino:", command.strip())
 

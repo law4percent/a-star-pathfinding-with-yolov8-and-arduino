@@ -185,7 +185,7 @@ def main():
 
     Table_A_Flag = False
     Table_B_Flag = False
-    Table_C_Flag = False
+    Table_C_Flag = True
     Table_D_Flag = False
 
     startTime = 0
@@ -371,8 +371,8 @@ def main():
             cls_center_x = int(x1 + x2) // 2
             cls_center_y = int(y1 + y2) // 2
             cls_center_pnt = (cls_center_x, cls_center_y)
-            w, h = x2 - x1, y2 - y1
 
+            w, h = x2 - x1, y2 - y1
             rec_pos = (x1, y1, w, h)
             text_pos = (x1, y1)
             clsID_and_Conf = f"{class_ID_name} {confidence}%"
@@ -384,7 +384,7 @@ def main():
                     list_to_append = path_lists[area_indx]
                     list_to_append.append(cls_center_x)
                     
-                    if class_ID_name == "robot":
+                    if class_ID_name == "person":
                         if ShowOnFrame_BoundingBoxAndClsID:
                             boundingBox_ClsID_display(Frame=transform_frame, Rec_pos=rec_pos, Color=robot_color, Text=clsID_and_Conf, Text_pos=text_pos)
                         cv2.circle(transform_frame, cls_center_pnt, 10, robot_color, -1)
@@ -444,6 +444,12 @@ def main():
                 numberOfCls_eachAreaD = table_data['TableD']['lengths']
                 target_area = getTheTargetArea(TableD_listOf_areaXY, numberOfCls_eachAreaD, Robot_Current_Location, max_cls_on_area, DEBUG_CMD)
 
+        if target_area != None and Robot_Current_Location != None:
+            _matrix = ConvertToMatrixOfArray(binary_map, frame_row, frame_column, False)
+            shortest_path = cd.CreatePath(Robot_Current_Location, target_area, _matrix, DEBUG_CMD)
+            shortest_path_tuple_format = ConvertToListOfTuple(shortest_path)
+            directional_format = cd.convertPathToDirection(shortest_path_tuple_format, row_max=frame_row, col_max=frame_column)
+        
         currentTime = time.time()
         if startTime != 0 and (currentTime - startTime) >= interval_reset: # 10 secs
             Table_A_Flag = False
@@ -451,12 +457,8 @@ def main():
             Table_C_Flag = False
             Table_D_Flag = False
             startTime = 0
-            if target_area != None and Robot_Current_Location != None:
-                _matrix = ConvertToMatrixOfArray(binary_map, frame_row, frame_column, False)
-                shortest_path = cd.CreatePath(Robot_Current_Location, target_area, _matrix, DEBUG_CMD)
-                shortest_path_tuple_format = ConvertToListOfTuple(shortest_path)
-                directional_format = cd.convertPathToDirection(shortest_path_tuple_format, row_max=frame_row, col_max=frame_column)
-                sendCommandToArduino(directional_format)
+            
+                # sendCommandToArduino(directional_format)
 
         if DEBUG_CMD:
             print(f"A Top: {len(PL_02)} Right: {len(PL_23)} Bottom: {len(PL_32)} Left: {len(PL_20)}")
